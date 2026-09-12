@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="470" viewBox="0 0 800 470">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12122a"/>
+      <stop offset="100%" stop-color="#050510"/>
+    </linearGradient>
+    <linearGradient id="ship" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8ffff"/>
+      <stop offset="100%" stop-color="#00aaff"/>
+    </linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="800" height="470" fill="url(#bg)"/>
+  <g opacity="0.15" stroke="#00aaff" stroke-width="1">
+    <line x1="0" y1="100" x2="800" y2="100"/><line x1="0" y1="200" x2="800" y2="200"/>
+    <line x1="0" y1="300" x2="800" y2="300"/><line x1="200" y1="0" x2="200" y2="470"/>
+    <line x1="400" y1="0" x2="400" y2="470"/><line x1="600" y1="0" x2="600" y2="470"/>
+  </g>
+  <rect x="0" y="150" width="280" height="24" fill="#ff2d6a" filter="url(#g)"/>
+  <rect x="520" y="150" width="280" height="24" fill="#ff2d6a" filter="url(#g)"/>
+  <rect x="290" y="146" width="220" height="32" fill="none" stroke="#00ffc8" stroke-width="2"/>
+  <rect x="0" y="280" width="220" height="22" fill="#ff2d6a" opacity="0.85" filter="url(#g)"/>
+  <rect x="480" y="280" width="320" height="22" fill="#ff2d6a" opacity="0.85" filter="url(#g)"/>
+  <polygon points="400,320 450,410 400,390 350,410" fill="url(#ship)" filter="url(#g)"/>
+  <circle cx="340" cy="220" r="12" fill="#ffd56a" filter="url(#g)"/>
+  <circle cx="460" cy="240" r="9" fill="#ffd56a" filter="url(#g)"/>
+  <text x="40" y="70" fill="#7fffd4" font-family="Segoe UI,sans-serif" font-size="48" font-weight="800" filter="url(#g)">Неоновые врата</text>
+  <text x="40" y="110" fill="#a8e6ff" font-family="Segoe UI,sans-serif" font-size="22" letter-spacing="4">NEON GATES — HYPERCASUAL</text>
+</svg>

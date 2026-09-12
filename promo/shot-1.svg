@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0a1e"/><stop offset="100%" stop-color="#050510"/></linearGradient>
+    <linearGradient id="ship" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8ffff"/><stop offset="100%" stop-color="#00aaff"/></linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="4"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <text x="36" y="64" fill="#a8e6ff" font-family="sans-serif" font-size="28">Очки 12</text>
+  <text x="560" y="64" fill="#7fffd4" font-family="sans-serif" font-size="28">×3</text>
+  <rect x="0" y="280" width="200" height="26" fill="#ff2d6a" filter="url(#g)"/>
+  <rect x="430" y="280" width="290" height="26" fill="#ff2d6a" filter="url(#g)"/>
+  <rect x="210" y="276" width="210" height="34" fill="none" stroke="#00ffc8" stroke-width="2"/>
+  <rect x="0" y="520" width="260" height="26" fill="#ff2d6a" filter="url(#g)"/>
+  <rect x="490" y="520" width="230" height="26" fill="#ff2d6a" filter="url(#g)"/>
+  <circle cx="360" cy="400" r="16" fill="#ffd56a" filter="url(#g)"/>
+  <polygon points="360,900 420,1020 360,990 300,1020" fill="url(#ship)" filter="url(#g)"/>
+  <text x="360" y="1200" text-anchor="middle" fill="#7fffd4" font-family="sans-serif" font-size="32">Gameplay</text>
+</svg>

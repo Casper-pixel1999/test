@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0a1e"/><stop offset="100%" stop-color="#050510"/></linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="6"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <circle cx="360" cy="280" r="120" fill="rgba(0,255,200,0.15)"/>
+  <text x="360" y="320" text-anchor="middle" fill="#7fffd4" font-family="sans-serif" font-size="56" font-weight="800" filter="url(#g)">Неоновые врата</text>
+  <text x="360" y="380" text-anchor="middle" fill="#a8e6ff" font-family="sans-serif" font-size="24" letter-spacing="6">NEON GATES</text>
+  <text x="360" y="480" text-anchor="middle" fill="#e8f0ff" font-family="sans-serif" font-size="28">Рекорд: 48</text>
+  <rect x="180" y="560" width="360" height="72" rx="16" fill="#00d4aa" filter="url(#g)"/>
+  <text x="360" y="608" text-anchor="middle" fill="#061018" font-family="sans-serif" font-size="32" font-weight="700">Играть</text>
+  <rect x="180" y="660" width="360" height="64" rx="16" fill="#243048" stroke="#5a7aaa" stroke-width="2"/>
+  <text x="360" y="702" text-anchor="middle" fill="#e8f0ff" font-family="sans-serif" font-size="26">Как играть</text>
+  <circle cx="360" cy="820" r="32" fill="#141e3c" stroke="#4a6aaa" stroke-width="2"/>
+  <text x="360" y="830" text-anchor="middle" font-size="28">🔊</text>
+  <text x="360" y="1180" text-anchor="middle" fill="#7fffd4" font-family="sans-serif" font-size="28">Menu</text>
+</svg>

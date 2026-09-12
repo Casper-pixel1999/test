@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0a1e"/><stop offset="100%" stop-color="#050510"/></linearGradient>
+    <filter id="g"><feGaussianBlur stdDeviation="5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <text x="360" y="360" text-anchor="middle" fill="#ff6b9d" font-family="sans-serif" font-size="48" font-weight="800" filter="url(#g)">Игра окончена</text>
+  <text x="360" y="450" text-anchor="middle" fill="#e8f0ff" font-family="sans-serif" font-size="30">Очки: 27</text>
+  <text x="360" y="500" text-anchor="middle" fill="#e8f0ff" font-family="sans-serif" font-size="30">Рекорд: 48</text>
+  <rect x="150" y="580" width="420" height="68" rx="16" fill="#ff9f1a" filter="url(#g)"/>
+  <text x="360" y="624" text-anchor="middle" fill="#2a1800" font-family="sans-serif" font-size="26" font-weight="700">▶ Продолжить (реклама)</text>
+  <rect x="150" y="680" width="420" height="68" rx="16" fill="#00d4aa" filter="url(#g)"/>
+  <text x="360" y="724" text-anchor="middle" fill="#061018" font-family="sans-serif" font-size="28" font-weight="700">Заново</text>
+  <rect x="150" y="780" width="420" height="60" rx="16" fill="#243048" stroke="#5a7aaa" stroke-width="2"/>
+  <text x="360" y="820" text-anchor="middle" fill="#e8f0ff" font-family="sans-serif" font-size="24">В меню</text>
+  <text x="360" y="1180" text-anchor="middle" fill="#7fffd4" font-family="sans-serif" font-size="28">Game Over</text>
+</svg>
