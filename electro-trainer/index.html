@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Монтажный стенд</title>
+<meta name="description" content="Тренажёр электромонтажника: подключение светильников, розеток, щитков и электродвигателей с симуляцией цепи.">
+<meta name="theme-color" content="#1d2733">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<!--APP-->
+<header class="topbar">
+  <a class="brand" href="#labs" aria-label="Монтажный стенд — к заданиям">
+    <svg viewBox="0 0 32 32" class="brand-mark" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" class="bm-bg"/><path d="M18 5 L9 18 h6 l-2 9 l10-14 h-6 z" class="bm-bolt"/></svg>
+    <span class="brand-name">Монтажный стенд</span>
+  </a>
+  <nav class="tabs" aria-label="Разделы">
+    <a href="#labs" data-nav="labs">Задания</a>
+    <a href="#sandbox" data-nav="sandbox">Песочница</a>
+    <a href="#theory" data-nav="theory">Теория</a>
+    <a href="#quiz" data-nav="quiz">Тест</a>
+  </nav>
+</header>
+
+<main class="main">
+  <section id="view-labs" class="view page"></section>
+
+  <section id="view-bench" class="view bench" hidden>
+    <aside class="panel" id="panel" aria-label="Задание">
+      <div class="panel-head">
+        <a class="back" href="#labs" aria-label="К списку заданий">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 L8 12 L15 19"/></svg>
+        </a>
+        <div class="panel-titles">
+          <p class="eyebrow" id="b-eyebrow"></p>
+          <h2 id="b-title"></h2>
+        </div>
+        <button type="button" class="icon-btn panel-close" id="btn-panel-close" aria-label="Свернуть задание">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9 L12 15 L18 9"/></svg>
+        </button>
+      </div>
+      <div class="panel-body" id="panel-body"></div>
+    </aside>
+
+    <div class="stage" id="stage">
+      <svg id="board" class="board" data-tool="wire" role="application" aria-label="Монтажная плата"></svg>
+      <div class="hud-top">
+        <div class="statusline" id="statusline"></div>
+        <div class="readout" id="readout" hidden></div>
+        <div class="toasts" id="toasts" aria-live="polite"></div>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Инструменты">
+        <button type="button" class="tb-btn tb-task" id="btn-panel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h9"/></svg><span>Задание</span>
+        </button>
+        <div class="tb-group" aria-label="Инструмент">
+          <button type="button" class="tb-btn" data-tool="wire" aria-pressed="true" title="Провод (1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="7" r="2.5"/><path d="M7 16 C12 16 12 8 17 8"/></svg><span>Провод</span>
+          </button>
+          <button type="button" class="tb-btn" data-tool="delete" aria-pressed="false" title="Удалить (2)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg><span>Удалить</span>
+          </button>
+          <button type="button" class="tb-btn" data-tool="probe" aria-pressed="false" title="Тестер (3)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="13" rx="2"/><path d="M10 7h4M12 16v5"/></svg><span>Тестер</span>
+          </button>
+        </div>
+        <div class="tb-group colors" id="colors" aria-label="Цвет провода"></div>
+        <div class="tb-group">
+          <button type="button" class="tb-btn tb-icon" id="btn-undo" title="Отменить (Ctrl+Z)" aria-label="Отменить">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6 L4 11 L9 16 M4 11 H14 a5 5 0 0 1 0 10 H10"/></svg>
+          </button>
+          <button type="button" class="tb-btn tb-icon" id="btn-fit" title="Показать всё" aria-label="Показать всю плату">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+        <button type="button" class="tb-btn tb-check" id="btn-check-tb">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12 L10 17 L19 7"/></svg><span id="check-label">Проверить</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-theory" class="view page" hidden></section>
+  <section id="view-quiz" class="view page" hidden></section>
+</main>
+<!--/APP-->
+<script src="js/components.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/labs.js"></script>
+<script src="js/content.js"></script>
+<script src="js/check.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

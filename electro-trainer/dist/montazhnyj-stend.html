@@ -1,0 +1,2756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d2733">
+<title>Монтажный стенд</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzFkMjczMyIvPjxyZWN0IHg9Ijk2IiB5PSI5NiIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzMjAiIHJ4PSI2NCIgZmlsbD0iI2YyYjcwNSIvPjxwYXRoIGQ9Ik0yOTIgMTIwIEwxNzAgMjkwIGg4MCBsLTMwIDExMCBsMTI0LTE3MCBoLTgwIHoiIGZpbGw9IiMxYzE2MDAiLz48L3N2Zz4K">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: тёмная шапка-«дверца щита», под ней перфорированная монтажная плата во весь экран; задание — сбоку на ПК и выезжающей шторкой на телефоне. */
+:root {
+  --bg: #e8ecef;
+  --surface: #ffffff;
+  --surface-2: #f3f5f7;
+  --ink: #17202a;
+  --muted: #59656f;
+  --line: #d0d7dd;
+  --accent: #f2b705;
+  --accent-ink: #1c1600;
+  --accent-soft: #fff3c4;
+  --ok: #1d8748;
+  --bad: #c3352a;
+  --warn: #a86400;
+  --live: #e4572e;
+  --bar: #1d2733;
+  --bar-ink: #e9eef2;
+  --bar-muted: #9eabb7;
+
+  --plate: #c4cad0;
+  --perf: #a8b0b8;
+  --plate-ink: #26303a;
+  --dev: #fbfbf8;
+  --dev-edge: #8b949c;
+  --dev-face: #eff1ee;
+  --dev-ink: #1d242b;
+  --screw: #cfd4d9;
+  --rail: #9aa3ab;
+  --rail-lip: #b8c0c7;
+
+  --f-display: "Unbounded", "Golos Text", system-ui, sans-serif;
+  --f-body: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --top-h: 56px;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171d; --surface: #1a222b; --surface-2: #212b35; --ink: #e6ebef; --muted: #9ba8b3; --line: #2d3945;
+    --accent: #f2b705; --accent-ink: #1c1600; --accent-soft: #3a3010; --ok: #3cc274; --bad: #ff6b5e; --warn: #f0a83a; --live: #ff7a4d;
+    --bar: #0c1116; --bar-ink: #e9eef2; --bar-muted: #8c99a5;
+    --plate: #2a3139; --perf: #1f252c; --plate-ink: #c9d2da; --dev: #e3e5e1; --dev-edge: #59626b; --dev-face: #d6d9d4; --dev-ink: #1d242b;
+    --screw: #b5bcc3; --rail: #4c555e; --rail-lip: #5f6872;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171d; --surface: #1a222b; --surface-2: #212b35; --ink: #e6ebef; --muted: #9ba8b3; --line: #2d3945;
+  --accent: #f2b705; --accent-ink: #1c1600; --accent-soft: #3a3010; --ok: #3cc274; --bad: #ff6b5e; --warn: #f0a83a; --live: #ff7a4d;
+  --bar: #0c1116; --bar-ink: #e9eef2; --bar-muted: #8c99a5;
+  --plate: #2a3139; --perf: #1f252c; --plate-ink: #c9d2da; --dev: #e3e5e1; --dev-edge: #59626b; --dev-face: #d6d9d4; --dev-ink: #1d242b;
+  --screw: #b5bcc3; --rail: #4c555e; --rail-lip: #5f6872;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); }
+
+/* ---------- Шапка ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  height: var(--top-h);
+  display: flex; align-items: center; gap: 16px;
+  padding-inline: 16px;
+  background: var(--bar); color: var(--bar-ink);
+}
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
+.brand-mark { width: 30px; height: 30px; flex: none; }
+.bm-bg { fill: var(--accent); }
+.bm-bolt { fill: var(--accent-ink); }
+.brand-name { font: 700 15px/1 var(--f-display); letter-spacing: .01em; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a {
+  padding: 8px 12px; border-radius: 8px; text-decoration: none;
+  color: var(--bar-muted); font-weight: 600; font-size: 14px; white-space: nowrap;
+}
+.tabs a:hover { color: var(--bar-ink); }
+.tabs a[aria-current="page"] { color: var(--accent-ink); background: var(--accent); }
+@media (max-width: 640px) {
+  .brand-name { display: none; }
+  .tabs { margin-left: 0; flex: 1; justify-content: space-between; }
+  .tabs a { padding: 8px 9px; font-size: 13.5px; }
+}
+
+/* ---------- Страницы ---------- */
+.page { padding-inline: 16px; padding-block: 28px 56px; }
+.page-in { max-width: 1060px; margin: 0 auto; display: grid; gap: 34px; }
+.hero { display: grid; gap: 12px; max-width: 720px; }
+.hero h1 { font: 700 clamp(26px, 5vw, 40px)/1.12 var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.hero-sm h1 { font-size: clamp(22px, 4vw, 30px); }
+.hero h1.q { font: 600 clamp(20px, 3.4vw, 26px)/1.3 var(--f-body); }
+.eyebrow { margin: 0; font: 700 11.5px/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lede { margin: 0; color: var(--muted); font-size: 16.5px; max-width: 64ch; }
+.progress { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+
+.lab-group { display: grid; gap: 14px; }
+.lab-group h2 { margin: 0; font: 700 13px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.lab-card {
+  display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px;
+  padding: 16px; min-height: 168px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  text-decoration: none; transition: border-color .15s, transform .15s;
+}
+.lab-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.lab-n { font-size: 12px; font-weight: 700; color: var(--muted); }
+.lab-t { font-weight: 700; font-size: 17px; line-height: 1.25; }
+.lab-b { color: var(--muted); font-size: 14px; }
+.lab-f { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.lab-card-alt { min-height: 0; grid-template-rows: auto auto 1fr; background: var(--surface-2); }
+.lvl { display: inline-flex; gap: 3px; }
+.lvl i { width: 14px; height: 5px; border-radius: 2px; background: var(--line); }
+.lvl i.on { background: var(--ink); }
+.stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+.star { width: 17px; height: 17px; fill: var(--line); }
+.star.is-on { fill: var(--accent); }
+.foot { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 18px; }
+.foot p { margin: 0; max-width: 70ch; }
+
+.theory { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; min-width: 0; }
+.card h2 { margin: 0 0 10px; font: 700 17px/1.3 var(--f-display); }
+.card p { margin: 8px 0; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.tbl td { padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl td:first-child { white-space: nowrap; width: 1%; font-weight: 700; }
+.steps { padding-left: 20px; margin: 0; display: grid; gap: 6px; }
+.mini-svg { width: 100%; max-width: 420px; height: auto; display: block; margin: 4px 0 8px; }
+.mini-svg .t-md { fill: var(--ink); font: 700 11px var(--f-body); }
+.mini-svg .t-xxs { fill: var(--muted); font: 600 9px var(--f-mono); }
+.mini-box rect { fill: var(--surface-2); stroke: var(--line); }
+.mini-t { fill: var(--screw); stroke: var(--dev-edge); }
+.mini-jump { stroke: var(--warn); stroke-width: 5; stroke-linecap: round; }
+
+.sw { display: inline-block; width: 22px; height: 10px; border-radius: 5px; margin-right: 3px; vertical-align: middle; border: 1px solid rgba(0,0,0,.25); }
+.sw-brown { background: #7a4a26; } .sw-black { background: #23262a; } .sw-grey { background: #8b9299; }
+.sw-blue { background: #1f5fd1; } .sw-yg { background: repeating-linear-gradient(90deg, #e8c51d 0 7px, #1f9a3e 7px 12px); }
+
+/* ---------- Кнопки ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 16px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  font-weight: 600; text-decoration: none;
+}
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-ghost { background: transparent; }
+.btn-bad { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn-small { min-height: 30px; padding: 0 10px; font-size: 13px; }
+.btn-block { width: 100%; }
+
+/* ---------- Тест ---------- */
+.quiz { max-width: 720px; }
+.answers { display: grid; gap: 10px; }
+.answer {
+  text-align: left; padding: 14px 16px; border-radius: var(--r); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); font-size: 16px;
+}
+.answer:hover:not(:disabled) { border-color: var(--accent); }
+.answer.is-right { border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); }
+.answer.is-wrong { border-color: var(--bad); box-shadow: inset 4px 0 0 var(--bad); }
+.answer:disabled { cursor: default; }
+.q-expl { display: grid; gap: 12px; justify-items: start; }
+.q-expl p { margin: 0; }
+
+/* ---------- Стенд ---------- */
+body[data-view="bench"] { overflow: hidden; }
+.bench {
+  position: relative;
+  height: calc(100dvh - var(--top-h) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: 360px 1fr;
+}
+.panel {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--surface); border-right: 1px solid var(--line);
+}
+.panel-head { display: flex; align-items: flex-start; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+.panel-titles { min-width: 0; flex: 1; display: grid; gap: 3px; }
+.panel-titles h2 { margin: 0; font: 700 18px/1.25 var(--f-display); text-wrap: balance; }
+.back, .icon-btn {
+  flex: none; width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center;
+  border: 1px solid var(--line); background: var(--surface-2); cursor: pointer;
+}
+.back svg, .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.panel-close { display: none; }
+.panel-body { overflow-y: auto; padding: 14px 16px 24px; display: grid; gap: 14px; align-content: start; }
+.goal { margin: 0; font-size: 15.5px; }
+.howto { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; color: var(--muted); }
+.howto p { margin: 3px 0; }
+.howto b { color: var(--ink); }
+.hints summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.hints ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14.5px; }
+.panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel-actions .btn-primary { flex: 1 1 auto; }
+.note { margin: 0; color: var(--muted); font-size: 13.5px; }
+.pal-h { margin: 4px 0 -4px; font: 700 11.5px/1 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.pal-item {
+  text-align: left; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.pal-item:hover { border-color: var(--accent); }
+
+.res-head { font-weight: 700; padding: 10px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.res-head.is-ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.res-head.is-bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.res-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.res-list li { display: grid; gap: 3px; padding-left: 26px; position: relative; font-size: 14.5px; }
+.res-list li::before { position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; }
+.res-list li.ok::before { content: "✓"; background: var(--ok); }
+.res-list li.bad::before { content: "!"; background: var(--bad); }
+.res-list li span { color: var(--muted); }
+.remarks { margin-top: 12px; font-size: 14px; color: var(--warn); }
+.remarks ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+#results { display: grid; gap: 12px; }
+
+.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--plate); }
+.board { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; display: block; }
+.board[data-tool="delete"] { cursor: crosshair; }
+.board[data-tool="probe"] { cursor: help; }
+
+.hud-top { position: absolute; left: 12px; right: 12px; top: 10px; display: grid; gap: 8px; justify-items: start; pointer-events: none; }
+.hud-top > * { pointer-events: auto; }
+.statusline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { font: 700 12px/1 var(--f-mono); padding: 6px 9px; border-radius: 99px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.pill-live { background: var(--live); color: #fff; border-color: var(--live); }
+.pill-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
+.hint-inline { font-size: 12.5px; color: var(--plate-ink); opacity: .8; }
+.readout {
+  max-width: min(620px, 100%); padding: 9px 12px; border-radius: 9px; font-size: 14px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+}
+.volt { font: 700 14px var(--f-mono); color: var(--live); }
+.toasts { display: grid; gap: 6px; max-width: min(560px, 100%); }
+.toast {
+  padding: 10px 12px; border-radius: 9px; font-size: 14px; line-height: 1.35;
+  background: var(--bar); color: var(--bar-ink); box-shadow: 0 6px 20px rgba(0,0,0,.2);
+  animation: toast-in .2s ease-out; transition: opacity .35s, transform .35s;
+}
+.toast-bad { background: var(--bad); color: #fff; }
+.toast-warn { background: var(--accent); color: var(--accent-ink); }
+.toast.out { opacity: 0; transform: translateY(-6px); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
+
+.toolbar {
+  position: absolute; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  width: max-content; max-width: calc(100% - 24px);
+  padding: 6px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 28px rgba(0,0,0,.18);
+}
+.tb-group { display: flex; gap: 4px; align-items: center; padding-inline: 4px; border-left: 1px solid var(--line); }
+.tb-group:first-of-type { border-left: 0; }
+.tb-btn {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-width: 52px; height: 48px; padding: 0 8px; border-radius: 10px;
+  border: 0; background: transparent; cursor: pointer; font-size: 11.5px; font-weight: 600; color: var(--muted);
+}
+.tb-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-btn:hover { background: var(--surface-2); color: var(--ink); }
+.tb-btn[aria-pressed="true"] { background: var(--bar); color: var(--bar-ink); }
+.tb-icon { min-width: 44px; }
+.tb-check { background: var(--accent); color: var(--accent-ink); }
+.tb-check:hover { background: var(--accent); color: var(--accent-ink); filter: brightness(1.05); }
+.tb-task { display: none; }
+.colors { gap: 6px; padding-inline: 8px; }
+.swatch {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer; padding: 0;
+  border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--muted);
+}
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.swatch.sw-yg { background: repeating-linear-gradient(135deg, #e8c51d 0 6px, #1f9a3e 6px 10px); }
+
+@media (max-width: 860px) {
+  .bench { grid-template-columns: 1fr; }
+  .panel {
+    position: absolute; z-index: 15; left: 0; right: 0; bottom: 0; max-height: 78%;
+    border-right: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 30px rgba(0,0,0,.25);
+    transform: translateY(105%); transition: transform .25s ease;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bench.panel-open .panel { transform: none; }
+  .panel-close { display: grid; }
+  .tb-task { display: inline-flex; }
+  .toolbar { left: 8px; right: 8px; transform: none; width: auto; max-width: none; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 2px; }
+  .tb-group { padding-inline: 2px; }
+  .tb-btn { min-width: 44px; height: 44px; padding: 0 5px; font-size: 10.5px; }
+  .colors { order: -2; flex: 1 1 auto; justify-content: space-evenly; border-left: 0; gap: 8px; }
+  .tb-check { order: -1; flex-direction: row; gap: 6px; padding: 0 14px; font-size: 13px; }
+  .tb-check svg { width: 18px; height: 18px; }
+  .toolbar > .tb-group:not(.colors), .tb-task { order: 1; border-top: 1px solid var(--line); padding-top: 4px; border-radius: 0; }
+  .toolbar::after { content: ""; order: 0; flex-basis: 100%; height: 0; }
+  .hint-inline { display: none; }
+}
+@media (max-width: 380px) {
+  .tb-btn span { display: none; }
+  .tb-btn { height: 40px; }
+}
+
+/* ---------- SVG: плата ---------- */
+.plate { fill: var(--plate); }
+.perf-dot { fill: var(--perf); }
+.rail { fill: var(--rail); }
+.rail-lip { fill: var(--rail-lip); }
+.board text { font-family: var(--f-body); fill: var(--dev-ink); pointer-events: none; }
+.t-sm { font-size: 10px; font-weight: 600; }
+.t-md { font-size: 11px; font-weight: 700; }
+.t-xs { font-size: 8px; font-weight: 600; }
+.t-xxs { font-size: 7px; font-weight: 600; }
+.t-strong { font-weight: 800; }
+.board .t-inv { fill: #fff; }
+.board .t-live { fill: #1b7a3f; }
+.board .t-bad { fill: #c3352a; }
+.board .t-dk { fill: #eef2f5; }
+.board .t-lit { fill: #5be38f; }
+.board .t-badlit { fill: #ff8f84; }
+.board .t-plate { fill: var(--plate-ink); }
+.board .t-id { font: 700 11px var(--f-mono); fill: var(--plate-ink); }
+.board .t-term { font: 700 8.5px var(--f-mono); fill: var(--plate-ink); }
+.board .t-probe { font: 800 11px var(--f-mono); fill: var(--live); }
+
+.dev { fill: var(--dev); stroke: var(--dev-edge); stroke-width: 1; }
+.dev-face { fill: var(--dev-face); }
+.dev-screw { fill: var(--screw); opacity: .55; }
+.dev-supply { fill: #303a45; stroke: #1b232b; }
+.pin-l { fill: #7a4a26; } .pin-n { fill: #1f5fd1; } .pin-pe { fill: #1f9a3e; }
+.pwr-switch { fill: #5b6670; stroke: #1b232b; }
+.pwr-switch.is-on { fill: var(--live); }
+.pwr-knob { fill: #f4f6f8; }
+.lever-track { fill: #2c343c; }
+.lever { fill: #3b4550; stroke: #1b232b; }
+.lever-rcd { fill: #2c6bd6; }
+.lever.is-tripped { stroke: #c3352a; stroke-width: 2; }
+.ind-on { fill: #d33b2c; }
+.ind-off { fill: #2aa457; }
+.btn-test { fill: #e2a400; stroke: #8a6400; }
+.bus-n { fill: #3b74d9; stroke: #1d4594; }
+.bus-pe { fill: #2aa457; stroke: #17703a; }
+.wago { fill: #f5f6f2; stroke: var(--dev-edge); }
+.wago-lever { fill: #f08a1c; }
+.key { fill: #fdfdfb; stroke: #b6bdc3; }
+.key.is-on { fill: #eef0ec; }
+.key-mark { fill: #d33b2c; }
+.key-arrow { fill: none; stroke: #8b949c; stroke-width: 2; }
+.dev-lamp { fill: #e9ebe7; }
+.glow { fill: url(#glowg); }
+.bulb { fill: #eef1f3; stroke: #a7b0b8; stroke-width: 1.5; }
+.bulb.is-on { fill: #ffe27a; stroke: #e4a800; }
+.bulb.is-burnt { fill: #6c6f70; stroke: #3c3f40; }
+.filament { fill: none; stroke: #8b949c; stroke-width: 1.4; }
+.filament.is-on { stroke: #ff8a00; }
+.crack { fill: none; stroke: #1b1d1e; stroke-width: 1.5; }
+.lamp-base { fill: #9aa3ab; }
+.socket-face { fill: #f1f2ee; stroke: #c3c9ce; }
+.socket-hole { fill: #2e353b; }
+.socket-pe { fill: #b9c0c6; }
+.socket-pe.is-ok { fill: #c6cbd0; stroke: #2aa457; stroke-width: 1.5; }
+.led-on { fill: #2fd06b; } .led-off { fill: #b9c0c6; }
+.pilot { stroke: #8b949c; stroke-width: 2; }
+.pilot-g { fill: #2b5a3a; } .pilot-g.is-on { fill: #3df07b; }
+.pilot-r { fill: #5a2b2b; } .pilot-r.is-on { fill: #ff4b3b; }
+.pilot.is-burnt { fill: #333; }
+.btn-ring { fill: #2c343c; }
+.btn-start { fill: #2aa457; stroke: #17703a; }
+.btn-stop { fill: #d33b2c; stroke: #8f1f16; }
+.km-window { fill: #2c343c; }
+.km-arm { fill: #8b949c; }
+.flag-ok { fill: #2aa457; } .flag-trip { fill: #d33b2c; }
+.btn-trip { fill: #d33b2c; } .btn-reset { fill: #3b74d9; }
+.motor-body { fill: #4d6a86; stroke: #2a3c4f; stroke-width: 1.5; }
+.motor-body.is-burnt { fill: #3a3634; }
+.motor-fin { fill: #5b7b99; opacity: .8; }
+.motor-shaft { fill: #b5bcc3; stroke: #6c757d; }
+.motor-plate { fill: #e7e9e5; stroke: #8b949c; }
+.fan-disc { fill: #34495e; stroke: #22313f; }
+.fan-blade { fill: #b8c4cf; }
+.fan-hub { fill: #f2b705; }
+.rot-arrow { fill: none; stroke: #f2b705; stroke-width: 3; }
+.arrowhead { fill: #f2b705; }
+.tbox { fill: #3d4a57; stroke: #222c35; }
+.tbox-pe { fill: #2aa457; opacity: .5; }
+.fan { transform-box: fill-box; transform-origin: center; }
+.spin-fwd { animation: spin .7s linear infinite; }
+.spin-rev { animation: spin .7s linear infinite reverse; }
+.hum { animation: hum .08s linear infinite alternate; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes hum { from { transform: translate(-.8px, 0); } to { transform: translate(.8px, .5px); } }
+
+.zone { cursor: pointer; }
+.zone:hover > rect:first-child, .zone:hover > circle:first-child { filter: brightness(.97); }
+
+.wire { cursor: pointer; }
+.w-hit { fill: none; stroke: transparent; stroke-width: 16; }
+.w-glow { fill: none; stroke: var(--live); stroke-opacity: .22; stroke-width: 11; stroke-linecap: round; }
+.w-sheath { fill: none; stroke: rgba(0,0,0,.45); stroke-width: 6.2; stroke-linecap: round; }
+.w-core { fill: none; stroke-width: 4.2; stroke-linecap: round; }
+.w-stripe { fill: none; stroke: #1f9a3e; stroke-width: 4.2; stroke-dasharray: 9 7; }
+.w-brown .w-core { stroke: #7a4a26; }
+.w-black .w-core { stroke: #23262a; }
+.w-grey .w-core { stroke: #8b9299; }
+.w-blue .w-core { stroke: #1f5fd1; }
+.w-yg .w-core { stroke: #e8c51d; }
+.wire.is-sel .w-sheath { stroke: var(--accent); stroke-width: 10; }
+.board[data-tool="delete"] .wire:hover .w-sheath { stroke: var(--bad); stroke-width: 10; }
+.rubber { fill: none; stroke-width: 4; stroke-dasharray: 6 5; pointer-events: none; }
+.rubber.w-brown { stroke: #7a4a26; } .rubber.w-black { stroke: #23262a; } .rubber.w-grey { stroke: #8b9299; }
+.rubber.w-blue { stroke: #1f5fd1; } .rubber.w-yg { stroke: #c9a80d; }
+
+.term { cursor: pointer; }
+.term-hit { fill: transparent; }
+.term:hover .term-hit { fill: rgba(242, 183, 5, .28); }
+.term-screw { fill: #dfe3e6; stroke: #5d666e; stroke-width: 1.2; }
+.term-slot { stroke: #5d666e; stroke-width: 1.4; }
+.term.is-live .term-screw { stroke: var(--live); stroke-width: 1.8; }
+.term.is-sel .term-hit { fill: rgba(242, 183, 5, .55); }
+.term.is-sel .term-screw { stroke: #8a6400; stroke-width: 2.4; }
+.term.is-probe .term-hit { fill: color-mix(in srgb, var(--live) 40%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin-fwd, .spin-rev, .hum, .toast { animation: none; }
+  .panel, .lab-card, .toast { transition: none; }
+}
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#labs" aria-label="Монтажный стенд — к заданиям">
+    <svg viewBox="0 0 32 32" class="brand-mark" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" class="bm-bg"/><path d="M18 5 L9 18 h6 l-2 9 l10-14 h-6 z" class="bm-bolt"/></svg>
+    <span class="brand-name">Монтажный стенд</span>
+  </a>
+  <nav class="tabs" aria-label="Разделы">
+    <a href="#labs" data-nav="labs">Задания</a>
+    <a href="#sandbox" data-nav="sandbox">Песочница</a>
+    <a href="#theory" data-nav="theory">Теория</a>
+    <a href="#quiz" data-nav="quiz">Тест</a>
+  </nav>
+</header>
+
+<main class="main">
+  <section id="view-labs" class="view page"></section>
+
+  <section id="view-bench" class="view bench" hidden>
+    <aside class="panel" id="panel" aria-label="Задание">
+      <div class="panel-head">
+        <a class="back" href="#labs" aria-label="К списку заданий">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 L8 12 L15 19"/></svg>
+        </a>
+        <div class="panel-titles">
+          <p class="eyebrow" id="b-eyebrow"></p>
+          <h2 id="b-title"></h2>
+        </div>
+        <button type="button" class="icon-btn panel-close" id="btn-panel-close" aria-label="Свернуть задание">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9 L12 15 L18 9"/></svg>
+        </button>
+      </div>
+      <div class="panel-body" id="panel-body"></div>
+    </aside>
+
+    <div class="stage" id="stage">
+      <svg id="board" class="board" data-tool="wire" role="application" aria-label="Монтажная плата"></svg>
+      <div class="hud-top">
+        <div class="statusline" id="statusline"></div>
+        <div class="readout" id="readout" hidden></div>
+        <div class="toasts" id="toasts" aria-live="polite"></div>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Инструменты">
+        <button type="button" class="tb-btn tb-task" id="btn-panel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h9"/></svg><span>Задание</span>
+        </button>
+        <div class="tb-group" aria-label="Инструмент">
+          <button type="button" class="tb-btn" data-tool="wire" aria-pressed="true" title="Провод (1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="7" r="2.5"/><path d="M7 16 C12 16 12 8 17 8"/></svg><span>Провод</span>
+          </button>
+          <button type="button" class="tb-btn" data-tool="delete" aria-pressed="false" title="Удалить (2)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg><span>Удалить</span>
+          </button>
+          <button type="button" class="tb-btn" data-tool="probe" aria-pressed="false" title="Тестер (3)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="13" rx="2"/><path d="M10 7h4M12 16v5"/></svg><span>Тестер</span>
+          </button>
+        </div>
+        <div class="tb-group colors" id="colors" aria-label="Цвет провода"></div>
+        <div class="tb-group">
+          <button type="button" class="tb-btn tb-icon" id="btn-undo" title="Отменить (Ctrl+Z)" aria-label="Отменить">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6 L4 11 L9 16 M4 11 H14 a5 5 0 0 1 0 10 H10"/></svg>
+          </button>
+          <button type="button" class="tb-btn tb-icon" id="btn-fit" title="Показать всё" aria-label="Показать всю плату">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+        <button type="button" class="tb-btn tb-check" id="btn-check-tb">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12 L10 17 L19 7"/></svg><span id="check-label">Проверить</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-theory" class="view page" hidden></section>
+  <section id="view-quiz" class="view page" hidden></section>
+</main>
+<script>document.documentElement.dataset.noSw = "1";
+/* Каталог электрических компонентов: геометрия, клеммы, контакты, отрисовка. */
+'use strict';
+
+(function (global) {
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const text = (x, y, s, cls = 't-sm', anchor = 'middle') =>
+    `<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${esc(s)}</text>`;
+  const term = (id, x, y, dir, label) => ({ id, x, y, dir, label: label == null ? id : label });
+
+  /* ---------- Ввод питания ---------- */
+  function supply(three) {
+    const ids = three ? ['L1', 'L2', 'L3', 'N', 'PE'] : ['L', 'N', 'PE'];
+    const step = three ? 44 : 44;
+    const w = three ? 250 : 190;
+    const terms = ids.map((id, i) => term(id, 26 + i * step, 88, 'down'));
+    const label = { L: 'L1', L1: 'L1', L2: 'L2', L3: 'L3', N: 'N', PE: 'PE' };
+    return {
+      title: three ? 'Ввод 3~ 400 В' : 'Ввод 1~ 230 В',
+      group: 'Питание',
+      prefix: 'ВВОД',
+      w, h: 100, terms,
+      init: () => ({ on: false }),
+      sources: (c) => (c.state.on ? ids.map((id) => [id, label[id]]) : []),
+      roleSources: () => ids.map((id) => [id, label[id]]),
+      tap(c) { c.state.on = !c.state.on; c.state.fuse = false; },
+      render(c) {
+        const on = c.state.on;
+        let s = `<rect class="dev dev-supply" x="0" y="0" width="${w}" height="100" rx="6"/>`;
+        s += text(12, 20, three ? 'ВВОД 3~ 400 В' : 'ВВОД 1~ 230 В', 't-md t-dk', 'start');
+        s += `<g data-zone="power" class="zone">`;
+        s += `<rect x="${w - 70}" y="8" width="60" height="24" rx="12" class="pwr-switch ${on ? 'is-on' : ''}"/>`;
+        s += `<circle cx="${on ? w - 22 : w - 58}" cy="20" r="9" class="pwr-knob"/>`;
+        s += `</g>`;
+        s += text(w - 40, 46, on ? 'ПОДАНО' : 'ОТКЛ', on ? 't-xs t-lit' : 't-xs t-dk', 'middle');
+        if (c.state.fuse) s += text(12, 46, 'Предохранители сгорели', 't-xs t-badlit', 'start');
+        ids.forEach((id, i) => {
+          const x = 26 + i * step;
+          const cls = id === 'N' ? 'pin-n' : id === 'PE' ? 'pin-pe' : 'pin-l';
+          s += `<rect x="${x - 13}" y="58" width="26" height="40" rx="3" class="${cls}"/>`;
+          s += text(x, 72, id === 'L' ? 'L' : id, 't-xs t-inv');
+        });
+        return s;
+      },
+    };
+  }
+
+  /* ---------- Модульный автомат ---------- */
+  function breaker(poles) {
+    const w = 36 * poles;
+    const terms = [];
+    for (let i = 0; i < poles; i++) {
+      terms.push(term(String(2 * i + 1), 18 + 36 * i, 9, 'up'));
+      terms.push(term(String(2 * i + 2), 18 + 36 * i, 111, 'down'));
+    }
+    return {
+      title: `Автомат ${poles}P`,
+      group: 'Защита',
+      prefix: 'QF',
+      w, h: 120, terms, protective: true, modular: true,
+      params: { rating: poles === 1 ? 'C16' : 'C25' },
+      init: () => ({ on: false }),
+      contacts(c) {
+        const r = [];
+        for (let i = 0; i < poles; i++) r.push({ a: String(2 * i + 1), b: String(2 * i + 2), tag: 'p' + i, closed: !!c.state.on });
+        return r;
+      },
+      tap(c) { c.state.on = !c.state.on; c.state.tripped = false; },
+      render(c) {
+        const on = c.state.on;
+        let s = `<rect class="dev" x="0" y="0" width="${w}" height="120" rx="4"/>`;
+        for (let i = 0; i < poles; i++) {
+          s += `<rect class="dev-screw" x="${4 + 36 * i}" y="2" width="28" height="16" rx="2"/>`;
+          s += `<rect class="dev-screw" x="${4 + 36 * i}" y="102" width="28" height="16" rx="2"/>`;
+        }
+        s += `<g data-zone="lever" class="zone">`;
+        s += `<rect class="dev-face" x="3" y="22" width="${w - 6}" height="76" rx="3"/>`;
+        s += text(w / 2, 34, (c.params && c.params.rating) || 'C16', 't-sm t-strong');
+        const lx = poles === 1 ? 9 : 8, lw = poles === 1 ? 18 : w - 16;
+        s += `<rect class="lever-track" x="${lx - 2}" y="40" width="${lw + 4}" height="42" rx="3"/>`;
+        s += `<rect class="lever ${c.state.tripped ? 'is-tripped' : ''}" x="${lx}" y="${on ? 42 : 62}" width="${lw}" height="18" rx="3"/>`;
+        s += `<rect x="${w / 2 - 6}" y="86" width="12" height="7" rx="1" class="${on ? 'ind-on' : 'ind-off'}"/>`;
+        s += `</g>`;
+        return s;
+      },
+    };
+  }
+
+  /* ---------- УЗО 2P ---------- */
+  const rcd = {
+    title: 'УЗО 2P 30 мА',
+    group: 'Защита',
+    prefix: 'QD',
+    w: 72, h: 120, modular: true, isRcd: true,
+    terms: [term('1', 18, 9, 'up', 'L'), term('N', 54, 9, 'up', 'N'), term('2', 18, 111, 'down', 'L'), term('N2', 54, 111, 'down', 'N')],
+    params: { rating: '40А 30мА' },
+    init: () => ({ on: false }),
+    contacts: (c) => [
+      { a: '1', b: '2', tag: 'L', closed: !!c.state.on },
+      { a: 'N', b: 'N2', tag: 'N', closed: !!c.state.on },
+    ],
+    tap(c, zone) {
+      if (zone === 'test') { if (c.state.on) { c.state.on = false; c.state.tripped = true; c.state.byTest = true; } return; }
+      c.state.on = !c.state.on; c.state.tripped = false; c.state.byTest = false;
+    },
+    render(c) {
+      const on = c.state.on;
+      let s = `<rect class="dev" x="0" y="0" width="72" height="120" rx="4"/>`;
+      s += `<rect class="dev-screw" x="4" y="2" width="28" height="16" rx="2"/><rect class="dev-screw" x="40" y="2" width="28" height="16" rx="2"/>`;
+      s += `<rect class="dev-screw" x="4" y="102" width="28" height="16" rx="2"/><rect class="dev-screw" x="40" y="102" width="28" height="16" rx="2"/>`;
+      s += `<g data-zone="lever" class="zone">`;
+      s += `<rect class="dev-face" x="3" y="22" width="66" height="76" rx="3"/>`;
+      s += text(36, 33, 'УЗО 30мА', 't-xs t-strong');
+      s += `<rect class="lever-track" x="10" y="40" width="22" height="42" rx="3"/>`;
+      s += `<rect class="lever lever-rcd ${c.state.tripped ? 'is-tripped' : ''}" x="8" y="${on ? 42 : 60}" width="26" height="18" rx="3"/>`;
+      s += `<rect x="15" y="86" width="12" height="7" rx="1" class="${on ? 'ind-on' : 'ind-off'}"/>`;
+      s += `</g>`;
+      s += `<g data-zone="test" class="zone"><circle cx="52" cy="60" r="11" class="btn-test"/>${text(52, 64, 'T', 't-sm t-inv')}</g>`;
+      s += text(52, 88, 'тест', 't-xs');
+      return s;
+    },
+  };
+
+  /* ---------- Шины и клеммы ---------- */
+  function bus(kind, n) {
+    const w = 16 + n * 24;
+    const terms = [];
+    for (let i = 0; i < n; i++) terms.push(term('t' + (i + 1), 20 + i * 24, 14, 'up', ''));
+    return {
+      title: kind === 'N' ? 'Шина N (ноль)' : 'Шина PE (земля)',
+      group: 'Монтаж',
+      prefix: kind === 'N' ? 'XN' : 'XPE',
+      w, h: 30, terms,
+      fixed: () => terms.slice(1).map((t) => ['t1', t.id]),
+      render() {
+        let s = `<rect class="${kind === 'N' ? 'bus-n' : 'bus-pe'}" x="0" y="4" width="${w}" height="22" rx="3"/>`;
+        s += text(6, 30 + 10, kind, 't-xs t-strong', 'start');
+        return s;
+      },
+    };
+  }
+
+  function wago(n) {
+    const w = 10 + n * 16;
+    const terms = [];
+    for (let i = 0; i < n; i++) terms.push(term('t' + (i + 1), 13 + i * 16, 8, 'up', ''));
+    return {
+      title: `Клемма WAGO ×${n}`,
+      group: 'Монтаж',
+      prefix: 'X',
+      w, h: 34, terms,
+      fixed: () => terms.slice(1).map((t) => ['t1', t.id]),
+      render() {
+        let s = `<rect class="wago" x="0" y="0" width="${w}" height="34" rx="4"/>`;
+        for (let i = 0; i < n; i++) s += `<rect class="wago-lever" x="${6 + i * 16}" y="18" width="14" height="12" rx="2"/>`;
+        return s;
+      },
+    };
+  }
+
+  /* ---------- Бытовые выключатели ---------- */
+  const switch1 = {
+    title: 'Выключатель 1-клав.',
+    group: 'Освещение',
+    prefix: 'SA',
+    w: 70, h: 84,
+    terms: [term('L', 18, 76, 'down'), term('1', 52, 76, 'down')],
+    init: () => ({ k1: false }),
+    contacts: (c) => [{ a: 'L', b: '1', tag: 'k1', closed: !!c.state.k1 }],
+    tap(c) { c.state.k1 = !c.state.k1; },
+    render(c) {
+      let s = `<rect class="dev" x="0" y="0" width="70" height="84" rx="8"/>`;
+      s += `<g data-zone="k1" class="zone"><rect class="key ${c.state.k1 ? 'is-on' : ''}" x="12" y="8" width="46" height="52" rx="5"/>`;
+      s += `<rect class="key-mark" x="31" y="${c.state.k1 ? 14 : 46}" width="8" height="8" rx="1"/></g>`;
+      return s;
+    },
+  };
+
+  const switch2 = {
+    title: 'Выключатель 2-клав.',
+    group: 'Освещение',
+    prefix: 'SA',
+    w: 84, h: 84,
+    terms: [term('L', 16, 76, 'down'), term('1', 42, 76, 'down'), term('2', 68, 76, 'down')],
+    init: () => ({ k1: false, k2: false }),
+    contacts: (c) => [
+      { a: 'L', b: '1', tag: 'k1', closed: !!c.state.k1 },
+      { a: 'L', b: '2', tag: 'k2', closed: !!c.state.k2 },
+    ],
+    tap(c, zone) { c.state[zone] = !c.state[zone]; },
+    render(c) {
+      let s = `<rect class="dev" x="0" y="0" width="84" height="84" rx="8"/>`;
+      ['k1', 'k2'].forEach((k, i) => {
+        const x = 10 + i * 33;
+        s += `<g data-zone="${k}" class="zone"><rect class="key ${c.state[k] ? 'is-on' : ''}" x="${x}" y="8" width="31" height="52" rx="4"/>`;
+        s += `<rect class="key-mark" x="${x + 12}" y="${c.state[k] ? 14 : 46}" width="7" height="7" rx="1"/></g>`;
+        s += text(x + 15.5, 70, i + 1, 't-xs');
+      });
+      return s;
+    },
+  };
+
+  const switchPass = {
+    title: 'Проходной выключатель',
+    group: 'Освещение',
+    prefix: 'SA',
+    w: 84, h: 84,
+    terms: [term('1', 16, 76, 'down'), term('L', 42, 76, 'down', 'L (общ.)'), term('2', 68, 76, 'down')],
+    init: () => ({ pos: 0 }),
+    contacts: (c) => [
+      { a: 'L', b: '1', tag: 'a', closed: !c.state.pos },
+      { a: 'L', b: '2', tag: 'b', closed: !!c.state.pos },
+    ],
+    tap(c) { c.state.pos = c.state.pos ? 0 : 1; },
+    render(c) {
+      let s = `<rect class="dev" x="0" y="0" width="84" height="84" rx="8"/>`;
+      s += `<g data-zone="k1" class="zone"><rect class="key ${c.state.pos ? 'is-on' : ''}" x="14" y="8" width="56" height="52" rx="5"/>`;
+      s += `<path d="M30 ${c.state.pos ? 40 : 26} L42 ${c.state.pos ? 26 : 40} L54 ${c.state.pos ? 40 : 26}" class="key-arrow"/></g>`;
+      s += text(42, 68, c.state.pos ? 'L→2' : 'L→1', 't-xs');
+      return s;
+    },
+  };
+
+  /* ---------- Нагрузки ---------- */
+  const lamp = {
+    title: 'Светильник',
+    group: 'Освещение',
+    prefix: 'HL',
+    w: 76, h: 92,
+    terms: [term('L', 16, 84, 'down'), term('N', 38, 84, 'down'), term('PE', 60, 84, 'down')],
+    loads: [{ a: 'L', b: 'N', kind: 'lamp' }],
+    init: () => ({}),
+    tap(c) { if (c.state.burnt) c.state.burnt = false; },
+    render(c, st) {
+      const on = st && st.on;
+      let s = `<rect class="dev dev-lamp" x="0" y="44" width="76" height="48" rx="6"/>`;
+      if (on) s += `<circle cx="38" cy="30" r="34" class="glow"/>`;
+      s += `<g data-zone="bulb" class="zone"><circle cx="38" cy="30" r="22" class="bulb ${on ? 'is-on' : ''} ${c.state.burnt ? 'is-burnt' : ''}"/>`;
+      s += `<path d="M30 34 q4 -10 8 0 q4 -10 8 0" class="filament ${on ? 'is-on' : ''}"/>`;
+      if (c.state.burnt) s += `<path d="M24 18 L34 30 L28 34 L44 46" class="crack"/>`;
+      s += `</g>`;
+      s += `<rect x="28" y="50" width="20" height="10" rx="2" class="lamp-base"/>`;
+      return s;
+    },
+  };
+
+  const socket = {
+    title: 'Розетка с заземлением',
+    group: 'Розетки',
+    prefix: 'XS',
+    w: 76, h: 92,
+    terms: [term('L', 16, 84, 'down'), term('N', 38, 84, 'down'), term('PE', 60, 84, 'down')],
+    loads: [{ a: 'L', b: 'N', kind: 'socket' }],
+    init: () => ({}),
+    render(c, st) {
+      const on = st && st.on;
+      let s = `<rect class="dev" x="0" y="0" width="76" height="92" rx="10"/>`;
+      s += `<circle cx="38" cy="38" r="27" class="socket-face"/>`;
+      s += `<circle cx="27" cy="38" r="4.5" class="socket-hole"/><circle cx="49" cy="38" r="4.5" class="socket-hole"/>`;
+      s += `<rect x="34" y="11" width="8" height="6" rx="1" class="socket-pe ${st && st.pe ? 'is-ok' : ''}"/>`;
+      s += `<rect x="34" y="59" width="8" height="6" rx="1" class="socket-pe ${st && st.pe ? 'is-ok' : ''}"/>`;
+      s += `<circle cx="66" cy="10" r="4" class="${on ? 'led-on' : 'led-off'}"/>`;
+      s += text(38, 76, on ? '~230 В' : '—', on ? 't-xs t-live' : 't-xs');
+      return s;
+    },
+  };
+
+  function pilot(color) {
+    return {
+      title: color === 'g' ? 'Сигнальная лампа зел.' : 'Сигнальная лампа красн.',
+      group: 'Управление',
+      prefix: 'HL',
+      w: 48, h: 66,
+      terms: [term('X1', 12, 58, 'down'), term('X2', 36, 58, 'down')],
+      loads: [{ a: 'X1', b: 'X2', kind: 'lamp' }],
+      init: () => ({}),
+      tap(c) { if (c.state.burnt) c.state.burnt = false; },
+      render(c, st) {
+        const on = st && st.on;
+        let s = `<rect class="dev" x="0" y="0" width="48" height="66" rx="5"/>`;
+        s += `<g data-zone="bulb" class="zone"><circle cx="24" cy="24" r="16" class="pilot pilot-${color} ${on ? 'is-on' : ''} ${c.state.burnt ? 'is-burnt' : ''}"/></g>`;
+        return s;
+      },
+    };
+  }
+
+  /* ---------- Кнопки ---------- */
+  function button(kind) {
+    const no = kind !== 'stop';
+    const a = no ? '13' : '11', b = no ? '14' : '12';
+    return {
+      title: no ? 'Кнопка «Пуск» (НО)' : 'Кнопка «Стоп» (НЗ)',
+      group: 'Управление',
+      prefix: 'SB',
+      w: 56, h: 84,
+      terms: [term(a, 14, 76, 'down'), term(b, 42, 76, 'down')],
+      momentary: ['btn'],
+      init: () => ({ pressed: false }),
+      contacts: (c) => [{ a, b, tag: 'c', closed: no ? !!c.state.pressed : !c.state.pressed }],
+      render(c) {
+        const p = c.state.pressed;
+        let s = `<rect class="dev" x="0" y="0" width="56" height="84" rx="6"/>`;
+        s += `<g data-zone="btn" class="zone"><circle cx="28" cy="30" r="22" class="btn-ring"/>`;
+        s += `<circle cx="28" cy="30" r="${p ? 14 : 17}" class="${no ? 'btn-start' : 'btn-stop'}"/>`;
+        s += text(28, 34, (c.params && c.params.caption) || (no ? 'I' : 'O'), 't-sm t-inv');
+        s += `</g>`;
+        s += text(28, 64, no ? 'НО' : 'НЗ', 't-xs');
+        return s;
+      },
+    };
+  }
+
+  /* ---------- Контактор ---------- */
+  const KX = [12, 40, 62, 84, 110, 132];
+  const contactor = {
+    title: 'Контактор 230 В~',
+    group: 'Управление',
+    prefix: 'KM',
+    w: 144, h: 140,
+    terms: [
+      term('A1', KX[0], 9, 'up'), term('1L1', KX[1], 9, 'up', 'L1'), term('3L2', KX[2], 9, 'up', 'L2'), term('5L3', KX[3], 9, 'up', 'L3'),
+      term('13', KX[4], 9, 'up'), term('21', KX[5], 9, 'up'),
+      term('A2', KX[0], 131, 'down'), term('2T1', KX[1], 131, 'down', 'T1'), term('4T2', KX[2], 131, 'down', 'T2'), term('6T3', KX[3], 131, 'down', 'T3'),
+      term('14', KX[4], 131, 'down'), term('22', KX[5], 131, 'down'),
+    ],
+    loads: [{ a: 'A1', b: 'A2', kind: 'coil' }],
+    init: () => ({ on: false }),
+    contacts: (c) => {
+      const on = !!c.state.on;
+      return [
+        { a: '1L1', b: '2T1', tag: 'p0', closed: on },
+        { a: '3L2', b: '4T2', tag: 'p1', closed: on },
+        { a: '5L3', b: '6T3', tag: 'p2', closed: on },
+        { a: '13', b: '14', tag: 'no', closed: on },
+        { a: '21', b: '22', tag: 'nc', closed: !on },
+      ];
+    },
+    tap(c) { if (c.state.burnt) c.state.burnt = false; },
+    render(c) {
+      const on = c.state.on;
+      let s = `<rect class="dev" x="0" y="0" width="144" height="140" rx="5"/>`;
+      KX.forEach((x) => {
+        s += `<rect class="dev-screw" x="${x - 9}" y="2" width="18" height="15" rx="2"/>`;
+        s += `<rect class="dev-screw" x="${x - 9}" y="123" width="18" height="15" rx="2"/>`;
+      });
+      s += `<g data-zone="body" class="zone"><rect class="dev-face" x="6" y="24" width="132" height="92" rx="4"/>`;
+      s += `<rect x="42" y="36" width="60" height="30" rx="3" class="km-window"/>`;
+      s += `<rect x="50" y="${on ? 54 : 42}" width="44" height="8" rx="2" class="${on ? 'ind-on' : 'km-arm'}"/>`;
+      s += text(72, 84, c.state.burnt ? 'КАТУШКА СГОРЕЛА' : '230В~ AC-3', c.state.burnt ? 't-xs t-bad' : 't-xs');
+      s += text(36, 104, 'НО 13-14', 't-xs');
+      s += text(108, 104, 'НЗ 21-22', 't-xs');
+      s += `</g>`;
+      return s;
+    },
+  };
+
+  /* ---------- Тепловое реле ---------- */
+  const TX = [18, 44, 70, 104, 130];
+  const thermal = {
+    title: 'Тепловое реле',
+    group: 'Защита',
+    prefix: 'KK',
+    w: 146, h: 116,
+    terms: [
+      term('1L1', TX[0], 9, 'up', 'L1'), term('3L2', TX[1], 9, 'up', 'L2'), term('5L3', TX[2], 9, 'up', 'L3'), term('95', TX[3], 9, 'up'), term('97', TX[4], 9, 'up'),
+      term('2T1', TX[0], 107, 'down', 'T1'), term('4T2', TX[1], 107, 'down', 'T2'), term('6T3', TX[2], 107, 'down', 'T3'), term('96', TX[3], 107, 'down'), term('98', TX[4], 107, 'down'),
+    ],
+    init: () => ({ tripped: false }),
+    fixed: () => [['1L1', '2T1'], ['3L2', '4T2'], ['5L3', '6T3']],
+    contacts: (c) => [
+      { a: '95', b: '96', tag: 'nc', closed: !c.state.tripped },
+      { a: '97', b: '98', tag: 'no', closed: !!c.state.tripped },
+    ],
+    tap(c, zone) {
+      if (zone === 'test') c.state.tripped = true;
+      if (zone === 'reset') c.state.tripped = false;
+    },
+    render(c) {
+      const tr = c.state.tripped;
+      let s = `<rect class="dev" x="0" y="0" width="146" height="116" rx="5"/>`;
+      TX.forEach((x) => {
+        s += `<rect class="dev-screw" x="${x - 10}" y="2" width="20" height="15" rx="2"/>`;
+        s += `<rect class="dev-screw" x="${x - 10}" y="99" width="20" height="15" rx="2"/>`;
+      });
+      s += `<rect class="dev-face" x="6" y="22" width="134" height="72" rx="4"/>`;
+      s += text(44, 36, 'KK  2,5–4 А', 't-xs t-strong');
+      s += `<rect x="20" y="46" width="48" height="16" rx="3" class="${tr ? 'flag-trip' : 'flag-ok'}"/>`;
+      s += text(44, 58, tr ? 'СРАБОТАЛО' : 'норма', 't-xs t-inv');
+      s += `<g data-zone="test" class="zone"><rect x="82" y="30" width="48" height="22" rx="4" class="btn-trip"/>${text(106, 45, 'Перегруз', 't-xs t-inv')}</g>`;
+      s += `<g data-zone="reset" class="zone"><rect x="82" y="58" width="48" height="22" rx="4" class="btn-reset"/>${text(106, 73, 'Сброс', 't-xs t-inv')}</g>`;
+      s += text(116, 90, '95-96 НЗ', 't-xs');
+      return s;
+    },
+  };
+
+  /* ---------- Асинхронный двигатель ---------- */
+  function motor(windV) {
+    const MX = [52, 92, 132];
+    return {
+      title: windV === 230 ? 'Двигатель 230/400 В Δ/Y' : 'Двигатель 400/690 В Δ/Y',
+      group: 'Двигатели',
+      prefix: 'M',
+      w: 184, h: 214,
+      windV,
+      terms: [
+        term('W2', MX[0], 148, 'up'), term('U2', MX[1], 148, 'up'), term('V2', MX[2], 148, 'up'),
+        term('U1', MX[0], 186, 'down'), term('V1', MX[1], 186, 'down'), term('W1', MX[2], 186, 'down'),
+        term('PE', 170, 186, 'down'),
+      ],
+      windings: [['U1', 'U2'], ['V1', 'V2'], ['W1', 'W2']],
+      init: () => ({}),
+      tap(c) { if (c.state.burnt) c.state.burnt = false; },
+      render(c, st) {
+        const mode = (st && st.mode) || 'stop';
+        const spin = mode === 'fwd' || mode === 'weak-fwd' ? 'spin-fwd' : mode === 'rev' || mode === 'weak-rev' ? 'spin-rev' : mode === 'hum' ? 'hum' : '';
+        let s = `<g data-zone="body" class="zone">`;
+        s += `<rect class="motor-body ${c.state.burnt ? 'is-burnt' : ''}" x="20" y="10" width="130" height="100" rx="14"/>`;
+        for (let i = 0; i < 7; i++) s += `<rect class="motor-fin" x="${30 + i * 16}" y="6" width="8" height="108" rx="3"/>`;
+        s += `<rect class="motor-shaft" x="150" y="52" width="26" height="14" rx="3"/>`;
+        s += `<g transform="translate(85 60)"><g class="fan ${spin}">`;
+        s += `<circle r="30" class="fan-disc"/>`;
+        for (let i = 0; i < 4; i++) s += `<path d="M0 0 L26 -7 A27 27 0 0 1 26 7 Z" transform="rotate(${i * 90})" class="fan-blade"/>`;
+        s += `<circle r="6" class="fan-hub"/></g></g>`;
+        s += `<rect class="motor-plate" x="6" y="18" width="40" height="30" rx="2"/>`;
+        s += text(26, 30, windV === 230 ? '230/400' : '400/690', 't-xxs t-strong');
+        s += text(26, 42, 'Δ / Y', 't-xxs');
+        if (mode === 'fwd' || mode === 'rev' || mode.startsWith('weak')) {
+          s += `<path d="${mode.endsWith('rev') ? 'M120 30 A40 40 0 0 0 50 30' : 'M50 30 A40 40 0 0 1 120 30'}" class="rot-arrow" marker-end="url(#arrowhead)"/>`;
+        }
+        s += `</g>`;
+        s += `<rect class="tbox" x="28" y="128" width="128" height="78" rx="6"/>`;
+        s += `<rect class="tbox-pe" x="158" y="166" width="24" height="40" rx="4"/>`;
+        s += text(92, 124, 'Клеммная коробка', 't-xxs t-plate');
+        let label = '';
+        if (c.state.burnt) label = 'ОБМОТКИ СГОРЕЛИ';
+        else if (mode === 'fwd') label = '▶ вперёд';
+        else if (mode === 'rev') label = '◀ назад';
+        else if (mode === 'hum') label = 'гудит, не крутится';
+        else if (mode.startsWith('weak')) label = 'слабо, мало мощности';
+        if (label) s += text(85, 102, label, mode === 'hum' || c.state.burnt ? 't-xs t-badlit' : 't-xs t-lit');
+        return s;
+      },
+    };
+  }
+
+  const CATALOG = {
+    supply1: supply(false),
+    supply3: supply(true),
+    breaker1: breaker(1),
+    breaker2: breaker(2),
+    breaker3: breaker(3),
+    rcd,
+    busN: bus('N', 6),
+    busPE: bus('PE', 6),
+    wago3: wago(3),
+    wago5: wago(5),
+    switch1,
+    switch2,
+    switchPass,
+    lamp,
+    socket,
+    pilotG: pilot('g'),
+    pilotR: pilot('r'),
+    btnStart: button('start'),
+    btnStop: button('stop'),
+    contactor,
+    thermal,
+    motorY: motor(230),
+    motorD: motor(400),
+  };
+
+  for (const k of Object.keys(CATALOG)) CATALOG[k].type = k;
+
+  global.ET = global.ET || {};
+  global.ET.CATALOG = CATALOG;
+  global.ET.def = (c) => CATALOG[c.type];
+  global.ET.esc = esc;
+})(window);
+
+/* Симулятор: сети по клеммам, КЗ и срабатывание автоматов, УЗО, контакторы, двигатели. */
+'use strict';
+
+(function (ET) {
+  const PHASES = ['L1', 'L2', 'L3'];
+  const key = (id, t) => id + '.' + t;
+  const def = ET.def;
+
+  class UF {
+    constructor() { this.p = new Map(); }
+    find(x) {
+      if (!this.p.has(x)) this.p.set(x, x);
+      let r = x;
+      while (this.p.get(r) !== r) r = this.p.get(r);
+      while (this.p.get(x) !== r) { const n = this.p.get(x); this.p.set(x, r); x = n; }
+      return r;
+    }
+    union(a, b) { const ra = this.find(a), rb = this.find(b); if (ra !== rb) this.p.set(ra, rb); }
+  }
+
+  /* opts.all — все контакты замкнуты и все вводы считаются поданными (статический анализ ролей)
+     opts.skip(c) — исключить контакты компонента (проверка «что если отключить») */
+  function buildNets(board, opts = {}) {
+    const uf = new UF();
+    for (const c of board.comps) for (const t of def(c).terms) uf.find(key(c.id, t.id));
+    for (const w of board.wires) uf.union(w.a, w.b);
+    for (const c of board.comps) {
+      const d = def(c);
+      if (d.fixed) for (const [a, b] of d.fixed(c)) uf.union(key(c.id, a), key(c.id, b));
+      if (d.contacts && !(opts.skip && opts.skip(c))) {
+        for (const ct of d.contacts(c)) if (opts.all || ct.closed) uf.union(key(c.id, ct.a), key(c.id, ct.b));
+      }
+    }
+    const labels = new Map();
+    for (const c of board.comps) {
+      const d = def(c);
+      const src = opts.all ? d.roleSources : d.sources;
+      if (!src) continue;
+      for (const [t, lab] of src(c)) {
+        const r = uf.find(key(c.id, t));
+        if (!labels.has(r)) labels.set(r, new Set());
+        labels.get(r).add(lab);
+      }
+    }
+    const labelsOf = (k) => labels.get(uf.find(k)) || new Set();
+    return {
+      root: (k) => uf.find(k),
+      labelsOf,
+      labels,
+      pot(k) {
+        const s = labelsOf(k);
+        for (const p of PHASES) if (s.has(p)) return p;
+        if (s.has('N') || s.has('PE')) return '0';
+        return null;
+      },
+    };
+  }
+
+  function shortRoots(net) {
+    const out = [];
+    for (const [r, s] of net.labels) {
+      const ph = PHASES.filter((p) => s.has(p));
+      const zero = s.has('N') || s.has('PE');
+      if (ph.length > 1 || (ph.length && zero)) out.push({ root: r, labels: [...s] });
+    }
+    return out;
+  }
+
+  function volt(pa, pb) {
+    if (!pa || !pb || pa === pb) return 0;
+    if (pa === '0' || pb === '0') return 230;
+    return 400;
+  }
+
+  function describeShort(sc, three) {
+    const ph = sc.labels.filter((l) => PHASES.includes(l)).map((l) => (three ? l : 'L'));
+    const z = sc.labels.filter((l) => l === 'N' || l === 'PE');
+    return [...ph, ...z].join('–');
+  }
+
+  function ratingOf(c) {
+    const m = String((c.params && c.params.rating) || (def(c).params && def(c).params.rating) || '100').match(/\d+/);
+    return m ? +m[0] : 100;
+  }
+
+  function tripFor(board) {
+    let best = null;
+    for (const c of board.comps) {
+      const d = def(c);
+      if (!d.protective || !c.state.on) continue;
+      const n2 = buildNets(board, { skip: (x) => x.id === c.id });
+      if (shortRoots(n2).length) continue;
+      if (!best || ratingOf(c) < ratingOf(best)) best = c;
+    }
+    return best;
+  }
+
+  function loadPairs(board) {
+    const out = [];
+    for (const c of board.comps) {
+      const d = def(c);
+      if (d.loads) for (const l of d.loads) out.push({ c, a: key(c.id, l.a), b: key(c.id, l.b), kind: l.kind });
+    }
+    return out;
+  }
+
+  function checkRcd(board, net) {
+    const loads = loadPairs(board).filter((l) => !l.c.state.burnt && volt(net.pot(l.a), net.pot(l.b)) > 0);
+    for (const r of board.comps) {
+      if (!def(r).isRcd || !r.state.on) continue;
+      const nr = buildNets(board, { skip: (x) => x.id === r.id });
+      const keeps = (k, p) => {
+        const s = nr.labelsOf(k);
+        return p === '0' ? s.has('N') || s.has('PE') : s.has(p);
+      };
+      for (const l of loads) {
+        const pa = net.pot(l.a), pb = net.pot(l.b);
+        const ta = !keeps(l.a, pa), tb = !keeps(l.b, pb);
+        if (ta !== tb) return { rcd: r, load: l.c };
+      }
+    }
+    return null;
+  }
+
+  function motorStatus(c, net) {
+    const d = def(c);
+    if (c.state.burnt) return { mode: 'burnt' };
+    const P = {};
+    for (const t of ['U1', 'U2', 'V1', 'V2', 'W1', 'W2']) P[t] = { pot: net.pot(key(c.id, t)), root: net.root(key(c.id, t)) };
+    const W = d.windings.map(([a, b]) => ({ a, b, pa: P[a].pot, pb: P[b].pot }));
+    const isPh = (p) => p && p !== '0';
+    let conn = null, vw = 0, order = null;
+
+    // Треугольник: каждая обмотка между двумя разными фазами, все три фазы задействованы
+    if (W.every((w) => isPh(w.pa) && isPh(w.pb) && w.pa !== w.pb)) {
+      const used = new Set(W.flatMap((w) => [w.pa, w.pb]));
+      if (used.size === 3) { conn = 'delta'; vw = 400; order = [P.U1.pot, P.V1.pot, P.W1.pot]; }
+    }
+    // Звезда: у каждой обмотки ровно один конец на фазе, вторые концы в одной общей точке
+    if (!conn) {
+      const ends = W.map((w) => {
+        if (isPh(w.pa) && !isPh(w.pb)) return { ph: w.pa, star: P[w.b].root, starPot: w.pb };
+        if (isPh(w.pb) && !isPh(w.pa)) return { ph: w.pb, star: P[w.a].root, starPot: w.pa };
+        return null;
+      });
+      if (ends.every(Boolean)) {
+        const phs = new Set(ends.map((e) => e.ph));
+        const stars = new Set(ends.map((e) => e.star));
+        if (phs.size === 3 && stars.size === 1) { conn = 'star'; vw = 230; order = ends.map((e) => e.ph); }
+      }
+    }
+    const anyV = W.some((w) => volt(w.pa, w.pb) > 0) || W.some((w) => isPh(w.pa) || isPh(w.pb));
+    if (!conn) return { mode: anyV ? 'hum' : 'stop', anyV };
+
+    const idx = order.map((p) => PHASES.indexOf(p));
+    const fwd = (idx[1] - idx[0] + 3) % 3 === 1 && (idx[2] - idx[1] + 3) % 3 === 1;
+    if (vw > d.windV) return { mode: 'overvolt', conn, vw };
+    if (vw < d.windV) return { mode: fwd ? 'weak-fwd' : 'weak-rev', conn, vw };
+    return { mode: fwd ? 'fwd' : 'rev', conn, vw };
+  }
+
+  /* Главный расчёт. Меняет состояние платы (срабатывания, контакторы, сгорания). */
+  function evaluate(board) {
+    const faults = [];
+    const three = board.comps.some((c) => c.type === 'supply3');
+    let net = null;
+    let stable = false;
+    for (let iter = 0; iter < 40; iter++) {
+      net = buildNets(board);
+      const sc = shortRoots(net);
+      if (sc.length) {
+        const desc = describeShort(sc[0], three);
+        const br = tripFor(board);
+        if (br) {
+          br.state.on = false; br.state.tripped = true;
+          faults.push({ type: 'short', comp: br.id, msg: `Короткое замыкание ${desc}: отключился ${br.id}` });
+        } else {
+          for (const s of board.comps) if (def(s).sources && s.state.on) { s.state.on = false; s.state.fuse = true; }
+          faults.push({ type: 'short', comp: null, msg: `Короткое замыкание ${desc} до защитного автомата! Сгорели предохранители на вводе` });
+        }
+        continue;
+      }
+      let changed = false;
+      for (const c of board.comps) {
+        if (c.type !== 'contactor') continue;
+        const v = volt(net.pot(key(c.id, 'A1')), net.pot(key(c.id, 'A2')));
+        if (v > 300 && !c.state.burnt) {
+          c.state.burnt = true;
+          faults.push({ type: 'burn', comp: c.id, msg: `На катушку ${c.id} подано 400 В вместо 230 В — катушка сгорела` });
+        }
+        const on = !c.state.burnt && v >= 150 && v <= 300;
+        if (on !== !!c.state.on) { c.state.on = on; changed = true; }
+      }
+      if (changed) continue;
+      const rt = checkRcd(board, net);
+      if (rt) {
+        rt.rcd.state.on = false; rt.rcd.state.tripped = true;
+        faults.push({ type: 'rcd', comp: rt.rcd.id, msg: `Сработало УЗО ${rt.rcd.id}: ток ${rt.load.id} уходит мимо УЗО (фаза и ноль нагрузки должны оба идти через УЗО, ноль после УЗО нельзя соединять с нулём до него или с PE)` });
+        continue;
+      }
+      stable = true;
+      break;
+    }
+    if (!stable) faults.push({ type: 'osc', comp: null, msg: 'Схема «звонит»: контактор непрерывно включается и отключается' });
+
+    const status = {};
+    for (const c of board.comps) {
+      const d = def(c);
+      if (d.loads) {
+        const l = d.loads[0];
+        const v = volt(net.pot(key(c.id, l.a)), net.pot(key(c.id, l.b)));
+        if (l.kind === 'lamp') {
+          if (v > 300 && !c.state.burnt) { c.state.burnt = true; faults.push({ type: 'burn', comp: c.id, msg: `${c.id}: подано 400 В (между фазами) — лампа сгорела` }); }
+          status[c.id] = { on: !c.state.burnt && v > 0 && v <= 300, v };
+        } else if (l.kind === 'socket') {
+          if (v > 300) faults.push({ type: 'burn', comp: c.id, msg: `${c.id}: в розетке 400 В! Подключённый прибор сгорит` });
+          status[c.id] = { on: v > 0, v, pe: net.labelsOf(key(c.id, 'PE')).has('PE') };
+        } else if (l.kind === 'coil') {
+          status[c.id] = { on: !!c.state.on, v };
+        }
+      }
+      if (d.windings) {
+        const ms = motorStatus(c, net);
+        if (ms.mode === 'overvolt') {
+          c.state.burnt = true;
+          faults.push({ type: 'burn', comp: c.id, msg: `${c.id}: обмотки на ${ms.vw} В вместо ${d.windV} В (${ms.conn === 'delta' ? 'треугольник' : 'звезда'}) — двигатель перегрелся и сгорел` });
+          status[c.id] = { mode: 'burnt' };
+        } else {
+          if (ms.mode === 'hum') faults.push({ type: 'hum', comp: c.id, msg: `${c.id} гудит и не крутится: обмотки собраны не полностью или пропала фаза` });
+          status[c.id] = ms;
+        }
+      }
+    }
+    return { net, faults, status, three };
+  }
+
+  /* Роли сетей для проверки цветов и PE: все контакты замкнуты, все вводы поданы. */
+  function roles(board) {
+    const net = buildNets(board, { all: true });
+    return (k) => {
+      const s = net.labelsOf(k);
+      return { ph: PHASES.some((p) => s.has(p)), n: s.has('N'), pe: s.has('PE') };
+    };
+  }
+
+  const COLOR_NAMES = { brown: 'коричневый', black: 'чёрный', grey: 'серый', blue: 'синий', yg: 'жёлто-зелёный' };
+
+  function colorRemarks(board) {
+    const role = roles(board);
+    const out = [];
+    for (const w of board.wires) {
+      if (w.locked) continue;
+      const r = role(w.a);
+      const nm = `${w.a} – ${w.b}`;
+      if (r.pe && !r.ph && !r.n && w.color !== 'yg') out.push(`${nm}: защитный проводник PE — только жёлто-зелёный (сейчас ${COLOR_NAMES[w.color]})`);
+      else if (r.n && !r.ph && !r.pe && w.color !== 'blue') out.push(`${nm}: нулевой рабочий N — синий (сейчас ${COLOR_NAMES[w.color]})`);
+      else if (r.ph && !r.n && !r.pe && (w.color === 'blue' || w.color === 'yg')) out.push(`${nm}: фазный провод не может быть ${COLOR_NAMES[w.color]} — берите коричневый, чёрный или серый`);
+      else if (!r.ph && !r.n && !r.pe && w.color === 'yg') out.push(`${nm}: жёлто-зелёный используют только для PE`);
+    }
+    return out;
+  }
+
+  ET.sim = { evaluate, buildNets, roles, colorRemarks, volt, key, PHASES, COLOR_NAMES };
+})(window.ET);
+
+/* Учебные задания: расстановка, предмонтированные провода, сценарии проверки. */
+'use strict';
+
+(function (ET) {
+  const W = (a, b, color) => ({ a, b, color, locked: true });
+
+  ET.LABS = [
+    {
+      id: 'lamp',
+      group: 'Освещение',
+      title: 'Лампа и выключатель',
+      level: 1,
+      brief: 'Самая частая схема в доме: светильник с одноклавишным выключателем.',
+      goal: 'Подключите светильник HL1 через автомат QF1 и выключатель SA1. Выключатель должен разрывать фазу, корпус светильника — заземлён.',
+      hints: [
+        'Фазу L с ввода заведите на верхнюю клемму автомата QF1 (провода питания всегда приходят сверху).',
+        'С нижней клеммы QF1 — на вход выключателя SA1 (клемма L).',
+        'С выхода выключателя (клемма 1) — на клемму L светильника.',
+        'Ноль N с ввода — синим проводом прямо на N светильника.',
+        'PE с ввода — жёлто-зелёным на PE светильника.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker1', x: 40, y: 170, params: { rating: 'C10' } },
+        { id: 'SA1', type: 'switch1', x: 140, y: 220 },
+        { id: 'HL1', type: 'lamp', x: 270, y: 210 },
+      ],
+      pe: ['HL1.PE'],
+      scenarios: [
+        {
+          name: 'Свет включается и выключается',
+          steps: [
+            ['expect', 'HL1', 'dead', 'При выключенном SA1 лампа не должна гореть, и на патроне не должно быть фазы (выключатель обязан разрывать фазу, а не ноль)'],
+            ['set', 'SA1', { k1: true }],
+            ['expect', 'HL1', 'on', 'При включённом SA1 лампа должна загореться'],
+            ['set', 'QF1', { on: false }],
+            ['expect', 'HL1', 'off', 'Автомат QF1 должен обесточивать светильник'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'switch2',
+      group: 'Освещение',
+      title: 'Люстра на две группы',
+      level: 2,
+      brief: 'Двухклавишный выключатель управляет двумя группами ламп.',
+      goal: 'Клавиша 1 выключателя SA1 включает HL1, клавиша 2 — HL2. Нули ламп соберите через клемму X1, заземление — через X2.',
+      hints: [
+        'Фаза после QF1 приходит на общую клемму L выключателя.',
+        'Выход 1 → L лампы HL1, выход 2 → L лампы HL2.',
+        'N ввода → X1, от X1 — на N обеих ламп. Так же PE через X2.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker1', x: 30, y: 170, params: { rating: 'C10' } },
+        { id: 'SA1', type: 'switch2', x: 110, y: 220 },
+        { id: 'X1', type: 'wago5', x: 250, y: 150 },
+        { id: 'X2', type: 'wago5', x: 360, y: 150 },
+        { id: 'HL1', type: 'lamp', x: 250, y: 240 },
+        { id: 'HL2', type: 'lamp', x: 370, y: 240 },
+      ],
+      pe: ['HL1.PE', 'HL2.PE'],
+      scenarios: [
+        {
+          name: 'Клавиши управляют своими группами',
+          steps: [
+            ['expect', 'HL1', 'dead', 'Когда клавиши выключены, на лампах не должно быть фазы'],
+            ['expect', 'HL2', 'dead', 'Когда клавиши выключены, на лампах не должно быть фазы'],
+            ['set', 'SA1', { k1: true }],
+            ['expect', 'HL1', 'on', 'Клавиша 1 должна включать HL1'],
+            ['expect', 'HL2', 'off', 'Клавиша 1 не должна включать HL2'],
+            ['set', 'SA1', { k1: false, k2: true }],
+            ['expect', 'HL1', 'off', 'Клавиша 2 не должна включать HL1'],
+            ['expect', 'HL2', 'on', 'Клавиша 2 должна включать HL2'],
+            ['set', 'SA1', { k1: true, k2: true }],
+            ['expect', 'HL1', 'on', 'При двух включённых клавишах должны гореть обе группы'],
+            ['expect', 'HL2', 'on', 'При двух включённых клавишах должны гореть обе группы'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'pass',
+      group: 'Освещение',
+      title: 'Свет из двух мест',
+      level: 2,
+      brief: 'Проходные выключатели: в коридоре или на лестнице.',
+      goal: 'Лампа HL1 должна включаться и выключаться любым из проходных выключателей SA1 и SA2.',
+      hints: [
+        'Фаза после QF1 → общая клемма L выключателя SA1.',
+        'Клеммы 1 и 2 выключателя SA1 соедините с клеммами 1 и 2 выключателя SA2 (два «перекидных» провода).',
+        'Общая клемма L выключателя SA2 → L лампы HL1.',
+        'N и PE ввода — прямо на лампу.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker1', x: 30, y: 170, params: { rating: 'C10' } },
+        { id: 'SA1', type: 'switchPass', x: 110, y: 220 },
+        { id: 'SA2', type: 'switchPass', x: 250, y: 220 },
+        { id: 'HL1', type: 'lamp', x: 390, y: 210 },
+      ],
+      pe: ['HL1.PE'],
+      scenarios: [
+        {
+          name: 'Каждый выключатель меняет состояние лампы',
+          steps: [
+            ['expect', 'HL1', 'mark', ''],
+            ['set', 'SA1', { pos: 1 }],
+            ['expect', 'HL1', 'toggled', 'Переключение SA1 должно менять состояние лампы'],
+            ['set', 'SA2', { pos: 1 }],
+            ['expect', 'HL1', 'toggled', 'Переключение SA2 должно менять состояние лампы'],
+            ['set', 'SA1', { pos: 0 }],
+            ['expect', 'HL1', 'toggled', 'Переключение SA1 должно менять состояние лампы'],
+            ['set', 'SA2', { pos: 0 }],
+            ['expect', 'HL1', 'toggled', 'Переключение SA2 должно менять состояние лампы'],
+            ['expect', 'HL1', 'offIsDead', 'Когда лампа не горит, на ней не должно быть фазы — коммутируйте фазу, а не ноль'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'sockets',
+      group: 'Розетки и щит',
+      title: 'Две розетки шлейфом',
+      level: 1,
+      brief: 'Розеточная группа: автомат 16 А и две розетки с заземлением.',
+      goal: 'Подключите розетки XS1 и XS2 через автомат QF1. Вторую розетку запитайте от первой (шлейфом). У обеих должен быть подключён PE.',
+      hints: [
+        'L ввода → QF1 сверху, QF1 снизу → L розетки XS1.',
+        'N ввода → N XS1, PE ввода → PE XS1.',
+        'Шлейф: от клемм XS1 (L, N, PE) — на одноимённые клеммы XS2. Никогда не путайте L и N между розетками.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker1', x: 30, y: 170, params: { rating: 'C16' } },
+        { id: 'XS1', type: 'socket', x: 120, y: 210 },
+        { id: 'XS2', type: 'socket', x: 250, y: 210 },
+      ],
+      pe: ['XS1.PE', 'XS2.PE'],
+      scenarios: [
+        {
+          name: 'Напряжение в розетках',
+          steps: [
+            ['expect', 'XS1', 'on', 'В розетке XS1 должно быть 230 В'],
+            ['expect', 'XS2', 'on', 'В розетке XS2 должно быть 230 В'],
+            ['set', 'QF1', { on: false }],
+            ['expect', 'XS1', 'off', 'После отключения QF1 розетка XS1 должна быть обесточена'],
+            ['expect', 'XS2', 'off', 'После отключения QF1 розетка XS2 должна быть обесточена'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'panel',
+      group: 'Розетки и щит',
+      title: 'Квартирный щиток с УЗО',
+      level: 3,
+      brief: 'Вводной автомат, УЗО, две группы, шины N и PE.',
+      goal: 'Соберите щиток: ввод → вводной автомат QF0 → УЗО QD1 → автоматы групп QF1 (розетка XS1) и QF2 (свет HL1 через SA1). Нули групп — с шины N после УЗО, заземление — через шину PE.',
+      hints: [
+        'L и N ввода → верх QF0 (клеммы 1 и 3).',
+        'Низ QF0 → верх УЗО: L на клемму L, N на клемму N.',
+        'Нижняя L УЗО → верх QF1, оттуда перемычкой → верх QF2.',
+        'Нижняя N УЗО → шина N. Ноль с шины N до УЗО не подключать!',
+        'PE ввода → шина PE. С шин N и PE — на розетку и светильник.',
+        'QF1 → L розетки. QF2 → выключатель SA1 → L светильника.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+        { id: 'QF0', type: 'breaker2', x: 10, y: 170, params: { rating: 'C40' } },
+        { id: 'QD1', type: 'rcd', x: 96, y: 170 },
+        { id: 'QF1', type: 'breaker1', x: 182, y: 170, params: { rating: 'C16' } },
+        { id: 'QF2', type: 'breaker1', x: 222, y: 170, params: { rating: 'C10' } },
+        { id: 'XN', type: 'busN', x: 300, y: 180 },
+        { id: 'XPE', type: 'busPE', x: 300, y: 250 },
+        { id: 'XS1', type: 'socket', x: 40, y: 380 },
+        { id: 'SA1', type: 'switch1', x: 200, y: 390 },
+        { id: 'HL1', type: 'lamp', x: 320, y: 380 },
+      ],
+      pe: ['XS1.PE', 'HL1.PE'],
+      scenarios: [
+        {
+          name: 'Обе группы работают, УЗО не срабатывает',
+          steps: [
+            ['expect', 'XS1', 'on', 'В розетке XS1 должно быть 230 В'],
+            ['expect', 'HL1', 'dead', 'При выключенном SA1 на светильнике не должно быть фазы'],
+            ['set', 'SA1', { k1: true }],
+            ['expect', 'HL1', 'on', 'При включённом SA1 светильник должен гореть'],
+          ],
+        },
+        {
+          name: 'Кнопка «Тест» УЗО',
+          steps: [
+            ['set', 'SA1', { k1: true }],
+            ['test', 'QD1'],
+            ['expect', 'XS1', 'off', 'После нажатия «Тест» УЗО розетка должна обесточиться — розеточная группа обязана быть за УЗО'],
+          ],
+        },
+        {
+          name: 'Группы отключаются независимо',
+          steps: [
+            ['set', 'SA1', { k1: true }],
+            ['set', 'QF1', { on: false }],
+            ['expect', 'XS1', 'off', 'QF1 должен отключать розетку'],
+            ['expect', 'HL1', 'on', 'Отключение QF1 не должно гасить свет — свет должен идти через QF2'],
+            ['set', 'QF1', { on: true }],
+            ['set', 'QF2', { on: false }],
+            ['expect', 'HL1', 'off', 'QF2 должен отключать свет'],
+            ['expect', 'XS1', 'on', 'Отключение QF2 не должно обесточивать розетку'],
+            ['set', 'QF2', { on: true }],
+            ['set', 'QF0', { on: false }],
+            ['expect', 'XS1', 'off', 'Вводной автомат QF0 должен обесточивать весь щиток'],
+            ['expect', 'HL1', 'off', 'Вводной автомат QF0 должен обесточивать весь щиток'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'star',
+      group: 'Двигатели',
+      title: 'Двигатель звездой',
+      level: 2,
+      brief: 'Асинхронный двигатель 230/400 В в сети 400 В собирают звездой.',
+      goal: 'Подключите двигатель M1 через автомат QF1. На табличке 230/400 В Δ/Y, сеть 400 В — значит обмотки соединяются звездой. Двигатель должен вращаться вперёд.',
+      hints: [
+        'Звезда: верхний ряд клеммной коробки W2, U2, V2 соединяется двумя перемычками.',
+        'Фазы L1, L2, L3 после QF1 → U1, V1, W1 (по порядку — тогда вращение вперёд).',
+        'Если двигатель крутится назад, поменяйте местами любые две фазы.',
+        'PE ввода → болт PE двигателя.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply3', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker3', x: 40, y: 160, params: { rating: 'C10' } },
+        { id: 'M1', type: 'motorY', x: 230, y: 140 },
+      ],
+      pe: ['M1.PE'],
+      scenarios: [
+        {
+          name: 'Пуск автоматом',
+          steps: [
+            ['expect', 'M1', 'fwd', 'При включённом QF1 двигатель должен вращаться вперёд со звездой на 230 В на обмотку'],
+            ['set', 'QF1', { on: false }],
+            ['expect', 'M1', 'stop', 'После отключения QF1 двигатель должен остановиться'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'delta',
+      group: 'Двигатели',
+      title: 'Двигатель треугольником',
+      level: 2,
+      brief: 'Мощный двигатель 400/690 В в сети 400 В собирают треугольником.',
+      goal: 'На табличке M1: 400/690 В Δ/Y. В сети 400 В обмотки соединяются треугольником. Двигатель должен вращаться вперёд.',
+      hints: [
+        'Треугольник: три вертикальные перемычки U1–W2, V1–U2, W1–V2.',
+        'Фазы после QF1 → U1, V1, W1.',
+        'Звезда здесь даст только 230 В на обмотку — двигатель потеряет мощность.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply3', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker3', x: 40, y: 160, params: { rating: 'C16' } },
+        { id: 'M1', type: 'motorD', x: 230, y: 140 },
+      ],
+      pe: ['M1.PE'],
+      scenarios: [
+        {
+          name: 'Пуск автоматом',
+          steps: [
+            ['expect', 'M1', 'fwd', 'При включённом QF1 двигатель должен вращаться вперёд в треугольнике (400 В на обмотку)'],
+            ['set', 'QF1', { on: false }],
+            ['expect', 'M1', 'stop', 'После отключения QF1 двигатель должен остановиться'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'dol',
+      group: 'Управление',
+      title: 'Пуск через контактор',
+      level: 3,
+      brief: 'Кнопки «Пуск» и «Стоп», самоподхват, тепловое реле.',
+      goal: 'Соберите силовую цепь QF1 → KM1 → KK1 → M1 и цепь управления от SF1: «Пуск» включает двигатель, после отпускания он продолжает работать, «Стоп» и тепловое реле его останавливают. Двигатель уже собран звездой.',
+      hints: [
+        'Силовая цепь: ввод → QF1 → 1L1/3L2/5L3 контактора, 2T1/4T2/6T3 → верх теплового реле, низ реле → U1, V1, W1.',
+        'Управление: L1 ввода → SF1 → 95 реле, 96 → 11 «Стоп», 12 «Стоп» → 13 «Пуск», 14 «Пуск» → A1 катушки, A2 → N ввода.',
+        'Самоподхват: блок-контакт KM1 13-14 параллельно кнопке «Пуск» (13 на 13, 14 на 14).',
+        'Почему «Стоп» нормально-замкнутая: при обрыве провода двигатель остановится, а не потеряет управление.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply3', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker3', x: 20, y: 160, params: { rating: 'C16' } },
+        { id: 'SF1', type: 'breaker1', x: 300, y: 160, params: { rating: 'C2' } },
+        { id: 'KM1', type: 'contactor', x: 0, y: 340 },
+        { id: 'SB1', type: 'btnStop', x: 300, y: 360, params: { caption: 'O' } },
+        { id: 'SB2', type: 'btnStart', x: 380, y: 360, params: { caption: 'I' } },
+        { id: 'KK1', type: 'thermal', x: 0, y: 540 },
+        { id: 'M1', type: 'motorY', x: 230, y: 560 },
+      ],
+      wires: [W('M1.W2', 'M1.U2', 'black'), W('M1.U2', 'M1.V2', 'black'), W('ВВОД.PE', 'M1.PE', 'yg')],
+      pe: ['M1.PE'],
+      scenarios: [
+        {
+          name: 'Пуск, самоподхват, стоп',
+          steps: [
+            ['expect', 'M1', 'stop', 'При подаче питания двигатель не должен запускаться сам'],
+            ['press', 'SB2'],
+            ['expect', 'M1', 'run', 'При нажатии «Пуск» двигатель должен запуститься'],
+            ['release', 'SB2'],
+            ['expect', 'M1', 'run', 'После отпускания «Пуск» двигатель должен работать — нужен самоподхват через KM1 13-14'],
+            ['press', 'SB1'],
+            ['expect', 'M1', 'stop', '«Стоп» должна останавливать двигатель'],
+            ['release', 'SB1'],
+            ['expect', 'M1', 'stop', 'После отпускания «Стоп» двигатель не должен запускаться сам'],
+          ],
+        },
+        {
+          name: 'Защита тепловым реле',
+          steps: [
+            ['press', 'SB2'], ['release', 'SB2'],
+            ['expect', 'M1', 'run', 'Двигатель должен запускаться кнопкой «Пуск»'],
+            ['set', 'KK1', { tripped: true }],
+            ['expect', 'M1', 'stop', 'При срабатывании теплового реле двигатель должен остановиться — включите контакт 95-96 в цепь катушки'],
+            ['set', 'KK1', { tripped: false }],
+            ['expect', 'M1', 'stop', 'После сброса теплового реле двигатель не должен запуститься сам'],
+          ],
+        },
+        {
+          name: 'Отключение автоматом цепи управления',
+          steps: [
+            ['press', 'SB2'], ['release', 'SB2'],
+            ['set', 'SF1', { on: false }],
+            ['expect', 'M1', 'stop', 'Без питания цепи управления (SF1) контактор должен отпасть'],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'reverse',
+      group: 'Управление',
+      title: 'Реверс двигателя',
+      level: 4,
+      brief: 'Два контактора, кнопки «Вперёд», «Назад», «Стоп» и электрическая блокировка.',
+      goal: 'Силовая часть KM1 уже собрана. Подключите KM2 так, чтобы он менял местами две фазы, и соберите цепь управления с самоподхватом и взаимной блокировкой: KM1 и KM2 никогда не должны включиться одновременно.',
+      hints: [
+        'KM2 снизу: 2T1 → W1, 4T2 → V1, 6T3 → U1 (L1 и L3 меняются местами).',
+        'L1 → SF1 → 11 «Стоп». С 12 «Стоп» — на 13 обеих пусковых кнопок и на 13 обоих контакторов.',
+        '«Вперёд» SB2: 14 → 14 KM1 (самоподхват) → 21 KM2, 22 KM2 → A1 KM1.',
+        '«Назад» SB3: 14 → 14 KM2 → 21 KM1, 22 KM1 → A1 KM2.',
+        'A2 обоих контакторов → N.',
+      ],
+      comps: [
+        { id: 'ВВОД', type: 'supply3', x: 0, y: 0 },
+        { id: 'QF1', type: 'breaker3', x: 20, y: 160, params: { rating: 'C16' } },
+        { id: 'SF1', type: 'breaker1', x: 460, y: 160, params: { rating: 'C2' } },
+        { id: 'KM1', type: 'contactor', x: 0, y: 340 },
+        { id: 'KM2', type: 'contactor', x: 200, y: 340 },
+        { id: 'SB1', type: 'btnStop', x: 420, y: 360, params: { caption: 'O' } },
+        { id: 'SB2', type: 'btnStart', x: 490, y: 360, params: { caption: '▶' } },
+        { id: 'SB3', type: 'btnStart', x: 560, y: 360, params: { caption: '◀' } },
+        { id: 'M1', type: 'motorY', x: 110, y: 560 },
+      ],
+      wires: [
+        W('ВВОД.L1', 'QF1.1', 'brown'), W('ВВОД.L2', 'QF1.3', 'black'), W('ВВОД.L3', 'QF1.5', 'grey'),
+        W('QF1.2', 'KM1.1L1', 'brown'), W('QF1.4', 'KM1.3L2', 'black'), W('QF1.6', 'KM1.5L3', 'grey'),
+        W('KM1.1L1', 'KM2.1L1', 'brown'), W('KM1.3L2', 'KM2.3L2', 'black'), W('KM1.5L3', 'KM2.5L3', 'grey'),
+        W('KM1.2T1', 'M1.U1', 'brown'), W('KM1.4T2', 'M1.V1', 'black'), W('KM1.6T3', 'M1.W1', 'grey'),
+        W('M1.W2', 'M1.U2', 'black'), W('M1.U2', 'M1.V2', 'black'), W('ВВОД.PE', 'M1.PE', 'yg'),
+      ],
+      pe: ['M1.PE'],
+      scenarios: [
+        {
+          name: 'Вперёд — стоп — назад',
+          steps: [
+            ['expect', 'M1', 'stop', 'При подаче питания двигатель не должен запускаться сам'],
+            ['press', 'SB2'], ['release', 'SB2'],
+            ['expect', 'M1', 'fwd', '«Вперёд» должна запускать двигатель вперёд и он должен работать после отпускания кнопки'],
+            ['press', 'SB1'], ['release', 'SB1'],
+            ['expect', 'M1', 'stop', '«Стоп» должна останавливать двигатель'],
+            ['press', 'SB3'], ['release', 'SB3'],
+            ['expect', 'M1', 'rev', '«Назад» должна запускать двигатель в обратную сторону с самоподхватом'],
+            ['press', 'SB1'], ['release', 'SB1'],
+            ['expect', 'M1', 'stop', '«Стоп» должна останавливать двигатель при вращении назад'],
+          ],
+        },
+        {
+          name: 'Блокировка от одновременного включения',
+          steps: [
+            ['press', 'SB2'], ['release', 'SB2'],
+            ['press', 'SB3'],
+            ['expect', 'M1', 'fwd|stop', 'Нажатие «Назад» во время работы вперёд не должно включать KM2 — нужна блокировка через НЗ-контакт KM1 21-22'],
+            ['release', 'SB3'],
+            ['press', 'SB1'], ['release', 'SB1'],
+            ['press', 'SB3'], ['release', 'SB3'],
+            ['press', 'SB2'],
+            ['expect', 'M1', 'rev|stop', 'Нажатие «Вперёд» во время работы назад не должно включать KM1 — нужна блокировка через НЗ-контакт KM2 21-22'],
+          ],
+        },
+      ],
+    },
+  ];
+
+  ET.SANDBOX_DEFAULT = {
+    comps: [
+      { id: 'ВВОД', type: 'supply1', x: 0, y: 0 },
+      { id: 'QF1', type: 'breaker1', x: 40, y: 170, params: { rating: 'C10' } },
+      { id: 'SA1', type: 'switch1', x: 140, y: 220 },
+      { id: 'HL1', type: 'lamp', x: 270, y: 210 },
+    ],
+    wires: [
+      { a: 'ВВОД.L', b: 'QF1.1', color: 'brown' },
+      { a: 'QF1.2', b: 'SA1.L', color: 'brown' },
+      { a: 'SA1.1', b: 'HL1.L', color: 'brown' },
+      { a: 'ВВОД.N', b: 'HL1.N', color: 'blue' },
+      { a: 'ВВОД.PE', b: 'HL1.PE', color: 'yg' },
+    ],
+  };
+})(window.ET);
+
+/* Теория и вопросы теста. */
+'use strict';
+
+(function (ET) {
+  ET.THEORY = [
+    {
+      title: 'Цвета проводов',
+      body: `
+<table class="tbl"><tbody>
+<tr><td><span class="sw sw-brown"></span><span class="sw sw-black"></span><span class="sw sw-grey"></span></td><td><b>Фаза L</b> (L1 — коричневый, L2 — чёрный, L3 — серый)</td></tr>
+<tr><td><span class="sw sw-blue"></span></td><td><b>N</b> — нулевой рабочий проводник</td></tr>
+<tr><td><span class="sw sw-yg"></span></td><td><b>PE</b> — защитный проводник (заземление). Этот цвет нельзя использовать ни для чего другого.</td></tr>
+</tbody></table>
+<p>Цвета по ГОСТ Р 50462. Перед работой всё равно проверяйте фазу индикатором: в старых домах цвета могут не соблюдаться.</p>`,
+    },
+    {
+      title: 'Буквенные обозначения',
+      body: `
+<table class="tbl"><tbody>
+<tr><td class="mono">QF</td><td>автоматический выключатель</td></tr>
+<tr><td class="mono">SF</td><td>автомат цепи управления</td></tr>
+<tr><td class="mono">QD</td><td>УЗО</td></tr>
+<tr><td class="mono">KM</td><td>контактор (магнитный пускатель)</td></tr>
+<tr><td class="mono">KK</td><td>тепловое реле</td></tr>
+<tr><td class="mono">SB</td><td>кнопка</td></tr>
+<tr><td class="mono">SA</td><td>выключатель, переключатель</td></tr>
+<tr><td class="mono">HL</td><td>лампа, сигнальная лампа</td></tr>
+<tr><td class="mono">XS</td><td>розетка</td></tr>
+<tr><td class="mono">X</td><td>клеммник, соединитель</td></tr>
+<tr><td class="mono">M</td><td>электродвигатель</td></tr>
+</tbody></table>`,
+    },
+    {
+      title: 'Звезда и треугольник',
+      body: `
+<svg viewBox="0 0 320 120" class="mini-svg" role="img" aria-label="Перемычки в клеммной коробке: звезда и треугольник">
+  <g transform="translate(10 10)">
+    <text x="60" y="10" class="t-md" text-anchor="middle">Звезда (Y)</text>
+    <g class="mini-box"><rect x="0" y="20" width="120" height="80" rx="6"/></g>
+    <circle cx="20" cy="45" r="7" class="mini-t"/><circle cx="60" cy="45" r="7" class="mini-t"/><circle cx="100" cy="45" r="7" class="mini-t"/>
+    <circle cx="20" cy="80" r="7" class="mini-t"/><circle cx="60" cy="80" r="7" class="mini-t"/><circle cx="100" cy="80" r="7" class="mini-t"/>
+    <line x1="20" y1="45" x2="100" y2="45" class="mini-jump"/>
+    <text x="20" y="35" class="t-xxs" text-anchor="middle">W2</text><text x="60" y="35" class="t-xxs" text-anchor="middle">U2</text><text x="100" y="35" class="t-xxs" text-anchor="middle">V2</text>
+    <text x="20" y="98" class="t-xxs" text-anchor="middle">U1</text><text x="60" y="98" class="t-xxs" text-anchor="middle">V1</text><text x="100" y="98" class="t-xxs" text-anchor="middle">W1</text>
+  </g>
+  <g transform="translate(180 10)">
+    <text x="60" y="10" class="t-md" text-anchor="middle">Треугольник (Δ)</text>
+    <g class="mini-box"><rect x="0" y="20" width="120" height="80" rx="6"/></g>
+    <circle cx="20" cy="45" r="7" class="mini-t"/><circle cx="60" cy="45" r="7" class="mini-t"/><circle cx="100" cy="45" r="7" class="mini-t"/>
+    <circle cx="20" cy="80" r="7" class="mini-t"/><circle cx="60" cy="80" r="7" class="mini-t"/><circle cx="100" cy="80" r="7" class="mini-t"/>
+    <line x1="20" y1="45" x2="20" y2="80" class="mini-jump"/><line x1="60" y1="45" x2="60" y2="80" class="mini-jump"/><line x1="100" y1="45" x2="100" y2="80" class="mini-jump"/>
+    <text x="20" y="35" class="t-xxs" text-anchor="middle">W2</text><text x="60" y="35" class="t-xxs" text-anchor="middle">U2</text><text x="100" y="35" class="t-xxs" text-anchor="middle">V2</text>
+    <text x="20" y="98" class="t-xxs" text-anchor="middle">U1</text><text x="60" y="98" class="t-xxs" text-anchor="middle">V1</text><text x="100" y="98" class="t-xxs" text-anchor="middle">W1</text>
+  </g>
+</svg>
+<p>Верхний ряд клемм в коробке смещён (W2 U2 V2), поэтому перемычки ставятся одинаковыми пластинами: горизонтально — звезда, вертикально — треугольник.</p>
+<p><b>Правило таблички.</b> На шильдике два напряжения, например <span class="mono">230/400 В Δ/Y</span>. Меньшее напряжение — для треугольника, большее — для звезды. В сети 400 В: двигатель 230/400 — звездой, двигатель 400/690 — треугольником.</p>
+<p><b>Направление вращения</b> меняют, поменяв местами любые две фазы.</p>`,
+    },
+    {
+      title: 'Пуск с самоподхватом',
+      body: `
+<p>Кнопка «Пуск» (НО, контакты 13-14) подаёт питание на катушку контактора A1-A2. Контактор включается и замыкает свой блок-контакт 13-14, подключённый параллельно кнопке. Теперь катушка питается через блок-контакт, и кнопку можно отпустить.</p>
+<p>Кнопка «Стоп» (НЗ, 11-12) стоит последовательно перед «Пуском» и разрывает цепь катушки. Контакт теплового реле 95-96 тоже нормально-замкнутый и включается последовательно.</p>
+<p><b>Реверс.</b> Второй контактор меняет местами две фазы. Чтобы два контактора не включились вместе (это межфазное КЗ), в цепь катушки каждого ставят НЗ-контакт 21-22 другого контактора. Это электрическая блокировка.</p>`,
+    },
+    {
+      title: 'Автомат, УЗО, дифавтомат',
+      body: `
+<p><b>Автомат (QF)</b> защищает провод от перегрузки и короткого замыкания. Номинал подбирают под сечение: 1,5 мм² медь — до 10 А (свет), 2,5 мм² — до 16 А (розетки).</p>
+<p><b>УЗО (QD)</b> сравнивает ток в фазе и в нуле. Если часть тока утекает через человека или корпус на землю, УЗО отключает за доли секунды. От перегрузки УЗО не защищает, поэтому его ставят вместе с автоматами.</p>
+<p><b>Главное правило УЗО:</b> ноль, прошедший через УЗО, нельзя соединять с нулём до УЗО и с PE. Иначе УЗО будет срабатывать без причины.</p>
+<p><b>Дифавтомат</b> — автомат и УЗО в одном корпусе.</p>`,
+    },
+    {
+      title: 'Пять шагов безопасности',
+      body: `
+<ol class="steps">
+<li>Отключите питание и примите меры против ошибочного включения (снимите вставку, заблокируйте автомат).</li>
+<li>Вывесите плакат «Не включать! Работают люди».</li>
+<li>Проверьте отсутствие напряжения исправным указателем. Сначала проверьте сам указатель на заведомо живой цепи.</li>
+<li>Установите заземление (на объектах, где это требуется).</li>
+<li>Оградите рабочее место от токоведущих частей, оставшихся под напряжением.</li>
+</ol>
+<p>В тренажёре можно монтировать при поданном питании, но такое задание получит меньше звёзд.</p>`,
+    },
+  ];
+
+  ET.QUIZ = [
+    { q: 'Каким цветом обозначается защитный проводник PE?', a: ['Синим', 'Жёлто-зелёным', 'Чёрным', 'Красным'], c: 1, e: 'PE — только жёлто-зелёный. Этот цвет нельзя использовать для фазы или нуля.' },
+    { q: 'Какой проводник должен разрывать выключатель освещения?', a: ['Ноль N', 'Фазу L', 'Защитный PE', 'Не важно'], c: 1, e: 'Выключатель разрывает фазу. Тогда при выключенном свете на патроне нет опасного потенциала.' },
+    { q: 'Двигатель 230/400 В Δ/Y включается в сеть 400 В. Как соединить обмотки?', a: ['Треугольником', 'Звездой', 'Любым способом', 'Последовательно'], c: 1, e: 'Большее напряжение на табличке (400 В) соответствует звезде.' },
+    { q: 'Двигатель 400/690 В Δ/Y в сети 400 В соединяют…', a: ['Звездой', 'Треугольником', 'Звездой с нулём', 'Через трансформатор'], c: 1, e: 'Меньшее напряжение (400 В) — треугольник. Звездой двигатель потеряет мощность примерно в 3 раза.' },
+    { q: 'Как изменить направление вращения трёхфазного двигателя?', a: ['Поменять местами N и PE', 'Поменять местами любые две фазы', 'Переключить звезду на треугольник', 'Поменять все три фазы по кругу'], c: 1, e: 'Смена двух любых фаз меняет порядок чередования и направление поля.' },
+    { q: 'Зачем блок-контакт 13-14 контактора подключают параллельно кнопке «Пуск»?', a: ['Для защиты от КЗ', 'Для самоподхвата', 'Для сигнализации', 'Для реверса'], c: 1, e: 'Блок-контакт удерживает катушку под напряжением после отпускания кнопки.' },
+    { q: 'Какой контакт у кнопки «Стоп»?', a: ['Нормально-открытый', 'Нормально-замкнутый', 'Переключающий', 'Любой'], c: 1, e: 'НЗ-кнопка «Стоп» безопаснее: обрыв провода приводит к остановке, а не к потере управления.' },
+    { q: 'Что сделает схема реверса без взаимной блокировки при одновременном включении KM1 и KM2?', a: ['Ничего', 'Межфазное короткое замыкание', 'Двигатель остановится плавно', 'Сработает тепловое реле'], c: 1, e: 'KM2 меняет фазы местами, поэтому одновременное включение замыкает две фазы между собой.' },
+    { q: 'От чего защищает УЗО?', a: ['От перегрузки', 'От короткого замыкания', 'От утечки тока (поражения током)', 'От перенапряжения'], c: 2, e: 'УЗО реагирует на разницу токов в фазе и нуле. Для защиты от перегрузки нужен автомат.' },
+    { q: 'Ноль после УЗО соединили с нулём до УЗО. Что будет?', a: ['Всё будет работать', 'УЗО будет ложно срабатывать', 'Сгорит автомат', 'Повысится напряжение'], c: 1, e: 'Часть тока пойдёт мимо УЗО, оно увидит разницу токов и отключит.' },
+    { q: 'Какой номинал автомата обычно ставят на розеточную группу медным кабелем 2,5 мм²?', a: ['6 А', '10 А', '16 А', '32 А'], c: 2, e: 'Для 2,5 мм² меди — 16 А, для 1,5 мм² (свет) — 10 А.' },
+    { q: 'Какой контакт теплового реле включают в цепь катушки контактора?', a: ['95-96 (НЗ)', '97-98 (НО)', 'A1-A2', '13-14'], c: 0, e: 'Нормально-замкнутый 95-96 размыкается при перегрузке и обесточивает катушку.' },
+    { q: 'Какое напряжение между двумя фазами в сети 230/400 В?', a: ['230 В', '400 В', '110 В', '690 В'], c: 1, e: 'Линейное напряжение — 400 В, фазное (фаза — ноль) — 230 В.' },
+    { q: 'Что обозначают буквы KM на схеме?', a: ['Кнопку', 'Контактор', 'Клеммник', 'Конденсатор'], c: 1, e: 'KM — контактор (магнитный пускатель), KK — тепловое реле.' },
+    { q: 'Какой проводник подключается к корпусу двигателя?', a: ['N', 'PE', 'L1', 'Никакой'], c: 1, e: 'Корпус заземляют проводником PE, чтобы при пробое изоляции сработала защита.' },
+    { q: 'С какой стороны модульного автомата подключают питающий провод?', a: ['Снизу', 'Сверху', 'Без разницы, но принято сверху', 'Сбоку'], c: 2, e: 'Электрически автомату всё равно, но по правилам монтажа ввод приходит сверху, отходящие линии — снизу.' },
+    { q: 'Проходной выключатель имеет…', a: ['2 клеммы', '3 клеммы (общая и две отходящие)', '4 клеммы', '6 клемм'], c: 1, e: 'Общий контакт L переключается между выходами 1 и 2.' },
+    { q: 'Первое, что нужно сделать перед работой в щитке?', a: ['Проверить напряжение пальцем', 'Отключить питание и проверить отсутствие напряжения', 'Надеть перчатки и работать под напряжением', 'Включить все автоматы'], c: 1, e: 'Отключить, вывесить плакат, проверить отсутствие напряжения исправным указателем.' },
+  ];
+})(window.ET);
+
+/* Проверка задания: прогон сценариев на копии платы, PE, цвета проводов. */
+'use strict';
+
+(function (ET) {
+  const { evaluate, roles, colorRemarks, key } = ET.sim;
+  const def = ET.def;
+  const HARD = new Set(['short', 'rcd', 'burn', 'osc']);
+
+  function prepare(board, lab) {
+    const b = JSON.parse(JSON.stringify(board));
+    for (const c of b.comps) {
+      const d = def(c);
+      c.state = d.init ? d.init() : {};
+      if (d.sources || d.protective || d.isRcd) c.state.on = true;
+    }
+    if (lab && lab.initial) for (const [id, st] of Object.entries(lab.initial)) Object.assign(b.comps.find((c) => c.id === id).state, st);
+    return b;
+  }
+
+  function hasPhase(r, c) {
+    return def(c).terms.some((t) => { const p = r.net.pot(key(c.id, t.id)); return p && p !== '0'; });
+  }
+
+  const MOTOR_TEXT = {
+    stop: 'двигатель стоит',
+    fwd: 'вращается вперёд',
+    rev: 'вращается назад',
+    hum: 'гудит, но не крутится (схема обмоток не собрана или пропала фаза)',
+    burnt: 'двигатель сгорел',
+  };
+
+  function actualText(c, st, r) {
+    if (def(c).windings) {
+      if (st.mode && st.mode.startsWith('weak')) return `крутится без мощности: на обмотках ${st.vw} В вместо ${def(c).windV} В`;
+      return MOTOR_TEXT[st.mode] || st.mode;
+    }
+    if (c.state.burnt) return 'сгорела';
+    if (st.on) return c.type === 'socket' ? 'есть 230 В' : 'горит';
+    return hasPhase(r, c) ? 'не горит, но на клеммах есть фаза' : c.type === 'socket' ? 'нет напряжения' : 'не горит';
+  }
+
+  function runScenario(board, lab, sc) {
+    const b = prepare(board, lab);
+    const byId = (id) => b.comps.find((c) => c.id === id);
+    const mark = {}, phaseWhenOff = {};
+    let r;
+    const track = () => {
+      for (const c of b.comps) {
+        const st = r.status[c.id];
+        if (st && 'on' in st && !st.on && def(c).loads && def(c).loads[0].kind === 'lamp' && hasPhase(r, c)) phaseWhenOff[c.id] = true;
+      }
+      const f = r.faults.find((x) => HARD.has(x.type));
+      return f ? f.msg : null;
+    };
+    r = evaluate(b);
+    let fault = track();
+    if (fault) return { ok: false, msg: `При подаче питания: ${fault}` };
+    for (const step of sc.steps) {
+      const [op, id, arg, msg] = step;
+      const c = byId(id);
+      if (op === 'expect') {
+        const st = r.status[id] || {};
+        let ok = true;
+        if (def(c).windings) {
+          const m = st.mode || 'stop';
+          ok = arg.split('|').some((w) => (w === 'run' ? m === 'fwd' || m === 'rev' : m === w));
+        } else if (arg === 'on') ok = !!st.on;
+        else if (arg === 'off') ok = !st.on;
+        else if (arg === 'dead') ok = !st.on && !hasPhase(r, c);
+        else if (arg === 'mark') { mark[id] = !!st.on; continue; }
+        else if (arg === 'toggled') { ok = !!st.on !== mark[id]; mark[id] = !!st.on; }
+        else if (arg === 'offIsDead') ok = !phaseWhenOff[id];
+        if (!ok) return { ok: false, msg: `${msg}. Сейчас ${id}: ${actualText(c, st, r)}.` };
+        continue;
+      }
+      if (op === 'set') Object.assign(c.state, arg);
+      else if (op === 'press') c.state.pressed = true;
+      else if (op === 'release') c.state.pressed = false;
+      else if (op === 'test') def(c).tap(c, 'test');
+      r = evaluate(b);
+      fault = track();
+      if (fault) {
+        const what = op === 'press' ? `при нажатии ${id}` : op === 'release' ? `при отпускании ${id}` : op === 'test' ? `при нажатии «Тест» ${id}` : `при переключении ${id}`;
+        return { ok: false, msg: `Авария ${what}: ${fault}` };
+      }
+    }
+    return { ok: true };
+  }
+
+  function checkLab(board, lab, liveWork) {
+    const res = { scenarios: [], pe: [], remarks: [], ok: true, stars: 0 };
+    const userWires = board.wires.filter((w) => !w.locked).length;
+    if (!userWires) {
+      res.ok = false;
+      res.scenarios.push({ name: 'Монтаж', ok: false, msg: 'Не проложено ни одного провода. Нажмите на клемму, затем на другую, чтобы соединить их.' });
+      return res;
+    }
+    for (const sc of lab.scenarios) {
+      const r = runScenario(board, lab, sc);
+      res.scenarios.push({ name: sc.name, ...r });
+      if (!r.ok) res.ok = false;
+    }
+    const role = roles(board);
+    for (const t of lab.pe || []) {
+      const ok = role(t).pe;
+      res.pe.push({ term: t, ok });
+      if (!ok) res.ok = false;
+    }
+    res.remarks = colorRemarks(board);
+    if (liveWork) res.remarks.push(`Монтаж под напряжением (${liveWork} раз). Сначала отключайте ввод, потом подключайте провода.`);
+    if (res.ok) {
+      res.stars = 3;
+      if (colorRemarks(board).length) res.stars--;
+      if (liveWork) res.stars--;
+      res.stars = Math.max(1, res.stars);
+    }
+    return res;
+  }
+
+  ET.check = { checkLab };
+})(window.ET);
+
+/* Интерфейс: экраны, монтажная плата, жесты, задания, теория, тест. */
+'use strict';
+
+(function (ET) {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = ET.esc;
+  const def = ET.def;
+  const { evaluate, key, volt } = ET.sim;
+
+  /* ---------- Хранилище ---------- */
+  const STORE_KEY = 'electro-trainer.v1';
+  let DB = {};
+  try { DB = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { DB = {}; }
+  DB.progress = DB.progress || {};
+  DB.boards = DB.boards || {};
+  const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) { /* хранилище недоступно */ } };
+
+  const WIRE_COLORS = [
+    { id: 'brown', name: 'Коричневый — фаза' },
+    { id: 'black', name: 'Чёрный — фаза' },
+    { id: 'grey', name: 'Серый — фаза' },
+    { id: 'blue', name: 'Синий — N' },
+    { id: 'yg', name: 'Жёлто-зелёный — PE' },
+  ];
+
+  /* ---------- Состояние стенда ---------- */
+  const B = {
+    mode: null, lab: null, board: null,
+    tool: 'wire', color: 'brown',
+    sel: null, selWire: -1, probe: [],
+    view: { x: 0, y: 0, k: 1 },
+    sim: null, hist: [], live: 0, faults: new Set(),
+    result: null,
+  };
+
+  const initState = (c) => { const d = def(c); return d.init ? d.init() : {}; };
+  const comp = (id) => B.board.comps.find((c) => c.id === id);
+  const termOf = (k) => {
+    const i = k.lastIndexOf('.');
+    const c = comp(k.slice(0, i));
+    if (!c) return null;
+    const t = def(c).terms.find((x) => x.id === k.slice(i + 1));
+    return t ? { c, t, x: c.x + t.x, y: c.y + t.y, dir: t.dir } : null;
+  };
+
+  function boardFromLab(lab) {
+    const saved = DB.boards['lab:' + lab.id];
+    const comps = lab.comps.map((c) => ({ id: c.id, type: c.type, x: c.x, y: c.y, params: { ...(c.params || {}) } }));
+    if (saved && saved.pos) for (const c of comps) if (saved.pos[c.id]) [c.x, c.y] = saved.pos[c.id];
+    comps.forEach((c) => (c.state = initState(c)));
+    const wires = (lab.wires || []).map((w) => ({ ...w }));
+    if (saved && saved.wires) wires.push(...saved.wires.map((w) => ({ a: w.a, b: w.b, color: w.color })));
+    return { comps, wires };
+  }
+
+  function boardFromSandbox() {
+    const src = DB.boards.sandbox || ET.SANDBOX_DEFAULT;
+    const comps = src.comps.filter((c) => ET.CATALOG[c.type]).map((c) => ({ id: c.id, type: c.type, x: c.x, y: c.y, params: { ...(c.params || {}) } }));
+    comps.forEach((c) => (c.state = initState(c)));
+    const ids = new Set(comps.map((c) => c.id));
+    const wires = src.wires.filter((w) => ids.has(w.a.split('.')[0]) && ids.has(w.b.split('.')[0])).map((w) => ({ a: w.a, b: w.b, color: w.color }));
+    return { comps, wires };
+  }
+
+  function persist() {
+    if (!B.board) return;
+    if (B.mode === 'lab') {
+      const pos = {};
+      B.board.comps.forEach((c) => (pos[c.id] = [c.x, c.y]));
+      DB.boards['lab:' + B.lab.id] = { pos, wires: B.board.wires.filter((w) => !w.locked).map(({ a, b, color }) => ({ a, b, color })) };
+    } else {
+      DB.boards.sandbox = {
+        comps: B.board.comps.map(({ id, type, x, y, params }) => ({ id, type, x, y, params })),
+        wires: B.board.wires.map(({ a, b, color }) => ({ a, b, color })),
+      };
+    }
+    save();
+  }
+
+  function snapshot() {
+    return JSON.stringify({ comps: B.board.comps.map(({ id, type, x, y, params }) => ({ id, type, x, y, params })), wires: B.board.wires });
+  }
+  function pushHist() { B.hist.push(snapshot()); if (B.hist.length > 80) B.hist.shift(); }
+  function undo() {
+    const s = B.hist.pop();
+    if (!s) { toast('Отменять нечего'); return; }
+    const d = JSON.parse(s);
+    const old = new Map(B.board.comps.map((c) => [c.id, c.state]));
+    B.board.comps = d.comps.map((c) => ({ ...c, state: old.get(c.id) || initState(c) }));
+    B.board.wires = d.wires;
+    B.sel = null; B.selWire = -1;
+    changed();
+  }
+
+  /* ---------- Симуляция и уведомления ---------- */
+  function simulate() {
+    B.sim = evaluate(B.board);
+    const now = new Set();
+    for (const f of B.sim.faults) {
+      now.add(f.msg);
+      if (!B.faults.has(f.msg)) toast(f.msg, f.type === 'hum' ? 'warn' : 'bad');
+    }
+    B.faults = now;
+  }
+
+  function changed(opts = {}) {
+    simulate();
+    render();
+    if (!opts.noSave) persist();
+    if (B.result && !opts.keepResult) { B.result = null; renderResults(); }
+  }
+
+  let toastSeq = 0;
+  function toast(msg, kind = 'info') {
+    const box = $('#toasts');
+    if (!box) return;
+    const el = document.createElement('div');
+    el.className = 'toast toast-' + kind;
+    el.textContent = msg;
+    el.dataset.n = ++toastSeq;
+    box.appendChild(el);
+    while (box.children.length > 3) box.firstChild.remove();
+    setTimeout(() => el.classList.add('out'), kind === 'bad' ? 5200 : 3200);
+    setTimeout(() => el.remove(), kind === 'bad' ? 5600 : 3600);
+  }
+
+  /* ---------- Отрисовка платы ---------- */
+  const DIRV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+  function wirePath(a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.hypot(dx, dy);
+    if (a.c === b.c) {
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const n = dist || 1, bow = Math.min(10, dist * 0.18);
+      return `M${a.x} ${a.y} Q${mx - (dy / n) * bow} ${my + (dx / n) * bow} ${b.x} ${b.y}`;
+    }
+    const d = Math.min(90, 18 + dist * 0.35);
+    const va = DIRV[a.dir] || [0, 1], vb = DIRV[b.dir] || [0, 1];
+    return `M${a.x} ${a.y} C${a.x + va[0] * d} ${a.y + va[1] * d} ${b.x + vb[0] * d} ${b.y + vb[1] * d} ${b.x} ${b.y}`;
+  }
+
+  function isLive(k) {
+    if (!B.sim) return false;
+    const p = B.sim.net.pot(k);
+    return p && p !== '0';
+  }
+
+  function railsSvg() {
+    const rows = new Map();
+    for (const c of B.board.comps) {
+      if (!def(c).modular) continue;
+      const y = c.y + 60;
+      const r = rows.get(y) || { x0: Infinity, x1: -Infinity };
+      r.x0 = Math.min(r.x0, c.x); r.x1 = Math.max(r.x1, c.x + def(c).w);
+      rows.set(y, r);
+    }
+    let s = '';
+    for (const [y, r] of rows) s += `<rect class="rail" x="${r.x0 - 16}" y="${y - 13}" width="${r.x1 - r.x0 + 32}" height="26" rx="2"/><rect class="rail-lip" x="${r.x0 - 16}" y="${y - 4}" width="${r.x1 - r.x0 + 32}" height="8"/>`;
+    return s;
+  }
+
+  function render() {
+    const svg = $('#board');
+    if (!svg || !B.board) return;
+    const st = B.sim ? B.sim.status : {};
+    let s = `<defs>
+      <pattern id="perf" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="1.6" class="perf-dot"/></pattern>
+      <radialGradient id="glowg"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffd257" stop-opacity="0"/></radialGradient>
+      <marker id="arrowhead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead"/></marker>
+    </defs>`;
+    s += `<g id="vp" transform="translate(${B.view.x} ${B.view.y}) scale(${B.view.k})">`;
+    s += `<rect x="-4000" y="-4000" width="8000" height="8000" class="plate"/><rect x="-4000" y="-4000" width="8000" height="8000" fill="url(#perf)"/>`;
+    s += railsSvg();
+    for (const c of B.board.comps) {
+      const d = def(c);
+      s += `<g class="comp" data-comp="${esc(c.id)}" transform="translate(${c.x} ${c.y})">`;
+      if (!d.sources) s += `<text x="0" y="-13" class="t-id">${esc(c.id)}</text>`;
+      s += d.render(c, st[c.id]);
+      s += `</g>`;
+    }
+    B.board.wires.forEach((w, i) => {
+      const a = termOf(w.a), b = termOf(w.b);
+      if (!a || !b) return;
+      const p = wirePath(a, b);
+      const live = isLive(w.a);
+      s += `<g class="wire w-${w.color} ${i === B.selWire ? 'is-sel' : ''} ${live ? 'is-live' : ''}" data-wire="${i}">`;
+      s += `<path d="${p}" class="w-hit"/>`;
+      if (live) s += `<path d="${p}" class="w-glow"/>`;
+      s += `<path d="${p}" class="w-sheath"/><path d="${p}" class="w-core"/>`;
+      if (w.color === 'yg') s += `<path d="${p}" class="w-stripe"/>`;
+      s += `</g>`;
+    });
+    for (const c of B.board.comps) {
+      const d = def(c);
+      for (const t of d.terms) {
+        const k = key(c.id, t.id);
+        const x = c.x + t.x, y = c.y + t.y;
+        const cls = [k === B.sel ? 'is-sel' : '', B.probe.includes(k) ? 'is-probe' : '', isLive(k) ? 'is-live' : ''].join(' ');
+        s += `<g class="term ${cls}" data-term="${esc(k)}"><circle cx="${x}" cy="${y}" r="13" class="term-hit"/><circle cx="${x}" cy="${y}" r="5" class="term-screw"/><path d="M${x - 3} ${y} h6" class="term-slot"/></g>`;
+        if (!d.sources && t.label) {
+          const ly = t.dir === 'up' ? y - 7 : y + 15;
+          s += `<text x="${x + 7}" y="${ly}" class="t-term">${esc(t.label)}</text>`;
+        }
+        const pi = B.probe.indexOf(k);
+        if (pi >= 0) s += `<text x="${x - 9}" y="${y - 9}" class="t-probe" text-anchor="middle">${pi ? 'B' : 'A'}</text>`;
+      }
+    }
+    s += `<path id="rubber" class="rubber" d="" />`;
+    s += `</g>`;
+    svg.innerHTML = s;
+    renderStatus();
+    renderReadout();
+  }
+
+  function applyView() {
+    const vp = $('#vp');
+    if (vp) vp.setAttribute('transform', `translate(${B.view.x} ${B.view.y}) scale(${B.view.k})`);
+  }
+
+  function updateRubber(from, wx, wy) {
+    const el = $('#rubber');
+    if (!el) return;
+    if (!from) { el.setAttribute('d', ''); return; }
+    const a = termOf(from);
+    if (!a) return;
+    el.setAttribute('d', `M${a.x} ${a.y} L${wx} ${wy}`);
+    el.setAttribute('class', 'rubber w-' + B.color);
+  }
+
+  function renderStatus() {
+    const el = $('#statusline');
+    if (!el) return;
+    const sup = B.board.comps.filter((c) => def(c).sources);
+    const on = sup.some((c) => c.state.on);
+    const trips = B.board.comps.filter((c) => c.state.tripped && !c.state.on).map((c) => c.id);
+    let h = on
+      ? `<span class="pill pill-live">Питание подано</span>`
+      : `<span class="pill">Питание отключено</span><span class="hint-inline">монтируйте спокойно, для проверки включите ввод</span>`;
+    if (trips.length) h += `<span class="pill pill-bad">Сработал: ${esc(trips.join(', '))}</span>`;
+    el.innerHTML = h;
+  }
+
+  function potText(k) {
+    const p = B.sim.net.pot(k);
+    if (!p) return 'нет напряжения';
+    if (p === '0') return B.sim.net.labelsOf(k).has('N') ? 'ноль N' : 'земля PE';
+    return B.sim.three ? `фаза ${p}` : 'фаза L';
+  }
+
+  function renderReadout() {
+    const el = $('#readout');
+    if (!el) return;
+    let h = '';
+    if (B.tool === 'probe') {
+      if (!B.probe.length) h = '<b>Тестер.</b> Нажмите на клемму, чтобы узнать потенциал, затем на вторую — чтобы измерить напряжение между ними.';
+      else {
+        const [a, b] = B.probe;
+        h = `<b>A</b> ${esc(a)}: ${potText(a)}`;
+        if (b) {
+          const v = volt(B.sim.net.pot(a), B.sim.net.pot(b));
+          h += ` · <b>B</b> ${esc(b)}: ${potText(b)} · <span class="volt">U = ${v} В</span>`;
+        }
+      }
+    } else if (B.selWire >= 0 && B.board.wires[B.selWire]) {
+      const w = B.board.wires[B.selWire];
+      h = `Провод ${esc(w.a)} – ${esc(w.b)} <button type="button" class="btn btn-small btn-bad" id="btn-del-wire">Удалить провод</button>`;
+    } else if (B.sel) {
+      h = `Выбрана клемма <b>${esc(B.sel)}</b>. Нажмите на вторую клемму, чтобы проложить провод.`;
+    }
+    el.innerHTML = h;
+    el.hidden = !h;
+    const del = $('#btn-del-wire');
+    if (del) del.onclick = () => deleteWire(B.selWire);
+  }
+
+  /* ---------- Действия ---------- */
+  function connect(a, b) {
+    if (a === b) return;
+    const ta = termOf(a), tb = termOf(b);
+    if (!ta || !tb) return;
+    if (B.board.wires.some((w) => (w.a === a && w.b === b) || (w.a === b && w.b === a))) { toast('Эти клеммы уже соединены'); return; }
+    const n = (k) => B.board.wires.filter((w) => w.a === k || w.b === k).length;
+    if (n(a) >= 3 || n(b) >= 3) { toast('Под один винт — не больше трёх проводов. Используйте шину или клемму WAGO', 'warn'); return; }
+    if (isLive(a) || isLive(b)) { B.live++; toast('Клемма под напряжением! В реальности так работать нельзя — сначала отключите ввод', 'warn'); }
+    pushHist();
+    B.board.wires.push({ a, b, color: B.color });
+    changed();
+  }
+
+  function deleteWire(i) {
+    const w = B.board.wires[i];
+    if (!w) return;
+    if (w.locked) { toast('Этот провод смонтирован заранее и входит в задание'); return; }
+    if (isLive(w.a) || isLive(w.b)) { B.live++; toast('Провод под напряжением! Отключите ввод перед демонтажем', 'warn'); }
+    pushHist();
+    B.board.wires.splice(i, 1);
+    B.selWire = -1;
+    changed();
+  }
+
+  function removeComp(c) {
+    if (B.mode !== 'sandbox') { toast('В задании аппараты удалять нельзя — удаляйте провода'); return; }
+    pushHist();
+    B.board.comps = B.board.comps.filter((x) => x !== c);
+    const p = c.id + '.';
+    B.board.wires = B.board.wires.filter((w) => !w.a.startsWith(p) && !w.b.startsWith(p));
+    B.sel = null; B.selWire = -1;
+    changed();
+  }
+
+  function termTap(k) {
+    if (B.tool === 'probe') {
+      B.probe = B.probe.length >= 2 ? [k] : [...B.probe, k];
+      render();
+      return;
+    }
+    if (B.tool === 'delete') {
+      let i = -1;
+      B.board.wires.forEach((w, j) => { if ((w.a === k || w.b === k) && !w.locked) i = j; });
+      if (i >= 0) deleteWire(i); else toast('К этой клемме не подключено проводов, которые можно удалить');
+      return;
+    }
+    B.selWire = -1;
+    if (!B.sel) B.sel = k;
+    else if (B.sel === k) B.sel = null;
+    else { const a = B.sel; B.sel = null; connect(a, k); return; }
+    render();
+  }
+
+  function wireTap(i) {
+    if (B.tool === 'delete') { deleteWire(i); return; }
+    B.sel = null;
+    B.selWire = B.selWire === i ? -1 : i;
+    render();
+  }
+
+  function zoneTap(c, zone) {
+    const d = def(c);
+    if (!d.tap) return;
+    d.tap(c, zone);
+    changed({ noSave: true });
+  }
+
+  function addComp(type) {
+    const d = ET.CATALOG[type];
+    let n = 1;
+    const prefix = d.prefix;
+    const used = new Set(B.board.comps.map((c) => c.id));
+    let id = prefix === 'ВВОД' ? 'ВВОД' : prefix + n;
+    while (used.has(id)) id = prefix + (prefix === 'ВВОД' ? ++n : ++n);
+    const r = $('#board').getBoundingClientRect();
+    const cx = (r.width / 2 - B.view.x) / B.view.k, cy = (r.height / 2 - B.view.y) / B.view.k;
+    const c = { id, type, x: Math.round((cx - d.w / 2) / 10) * 10, y: Math.round((cy - d.h / 2) / 10) * 10, params: { ...(d.params || {}) } };
+    c.state = initState(c);
+    pushHist();
+    B.board.comps.push(c);
+    changed();
+    toast(`Добавлен ${id}. Перетащите его на нужное место`);
+    if (window.matchMedia('(max-width: 860px)').matches) setPanel(false);
+  }
+
+  /* ---------- Вид: вписать, масштаб ---------- */
+  function fit() {
+    const svg = $('#board');
+    if (!svg || !B.board.comps.length) return;
+    const r = svg.getBoundingClientRect();
+    const tb = $('.toolbar');
+    const bottom = tb ? tb.getBoundingClientRect().height + 16 : 70;
+    const top = 56;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of B.board.comps) {
+      const d = def(c);
+      x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y - 16);
+      x1 = Math.max(x1, c.x + d.w); y1 = Math.max(y1, c.y + d.h + 14);
+    }
+    const pad = 24;
+    const aw = Math.max(100, r.width - pad * 2), ah = Math.max(100, r.height - top - bottom - pad);
+    const k = Math.max(0.25, Math.min(2.2, Math.min(aw / (x1 - x0), ah / (y1 - y0))));
+    B.view.k = k;
+    B.view.x = (r.width - (x1 - x0) * k) / 2 - x0 * k;
+    B.view.y = top + (ah - (y1 - y0) * k) / 2 + pad / 2 - y0 * k;
+    applyView();
+  }
+
+  function zoomAt(cx, cy, f) {
+    const k2 = Math.max(0.2, Math.min(4, B.view.k * f));
+    const ff = k2 / B.view.k;
+    B.view.x = cx - (cx - B.view.x) * ff;
+    B.view.y = cy - (cy - B.view.y) * ff;
+    B.view.k = k2;
+    applyView();
+  }
+
+  /* ---------- Жесты ---------- */
+  const ptrs = new Map();
+  let G = null;
+  let held = null;
+
+  function local(e) {
+    const r = $('#board').getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function toWorld(e) {
+    const p = local(e);
+    return { x: (p.x - B.view.x) / B.view.k, y: (p.y - B.view.y) / B.view.k };
+  }
+  function releaseHeld() {
+    if (held) { held.state.pressed = false; held = null; changed({ noSave: true }); }
+  }
+
+  function onDown(e) {
+    if (e.button && e.button !== 0) return;
+    const svg = $('#board');
+    ptrs.set(e.pointerId, local(e));
+    try { svg.setPointerCapture(e.pointerId); } catch (err) { /* нет захвата */ }
+    if (ptrs.size === 2) {
+      releaseHeld();
+      const [p1, p2] = [...ptrs.values()];
+      G = { type: 'pinch', d: Math.hypot(p1.x - p2.x, p1.y - p2.y), cx: (p1.x + p2.x) / 2, cy: (p1.y + p2.y) / 2 };
+      updateRubber(null);
+      return;
+    }
+    if (ptrs.size > 2) return;
+    // Клеммы и органы управления важнее проводов, которые лежат поверх них
+    const stack = document.elementsFromPoint(e.clientX, e.clientY);
+    const pick = (sel) => { for (const x of stack) { const m = x.closest && x.closest(sel); if (m) return m; } return null; };
+    const termEl = pick('[data-term]');
+    const zoneEl = termEl ? null : pick('[data-zone]');
+    const wireEl = termEl || (zoneEl && B.tool !== 'delete') ? null : pick('[data-wire]');
+    const compEl = zoneEl ? zoneEl.closest('[data-comp]') : pick('[data-comp]');
+    const base = { sx: e.clientX, sy: e.clientY, moved: false };
+    if (termEl) G = { type: 'term', key: termEl.dataset.term, ...base };
+    else if (zoneEl && compEl && B.tool !== 'delete') {
+      const c = comp(compEl.dataset.comp), zone = zoneEl.dataset.zone;
+      if ((def(c).momentary || []).includes(zone)) {
+        c.state.pressed = true; held = c;
+        changed({ noSave: true });
+        G = { type: 'held', ...base };
+      } else G = { type: 'zone', c, zone, ox: c.x, oy: c.y, ...base };
+    } else if (wireEl) G = { type: 'wire', idx: +wireEl.dataset.wire, ...base };
+    else if (compEl) { const c = comp(compEl.dataset.comp); G = { type: 'comp', c, ox: c.x, oy: c.y, ...base }; }
+    else G = { type: 'pan', vx: B.view.x, vy: B.view.y, ...base };
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!ptrs.has(e.pointerId)) {
+      if (B.sel && e.pointerType === 'mouse') { const w = toWorld(e); updateRubber(B.sel, w.x, w.y); }
+      return;
+    }
+    ptrs.set(e.pointerId, local(e));
+    if (!G) return;
+    if (G.type === 'pinch') {
+      if (ptrs.size < 2) return;
+      const [p1, p2] = [...ptrs.values()];
+      const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+      B.view.x += cx - G.cx; B.view.y += cy - G.cy;
+      if (G.d > 10) zoomAt(cx, cy, d / G.d);
+      G.d = d; G.cx = cx; G.cy = cy;
+      applyView();
+      return;
+    }
+    const dx = e.clientX - G.sx, dy = e.clientY - G.sy;
+    const far = Math.hypot(dx, dy) > (e.pointerType === 'mouse' ? 4 : 9);
+    if ((G.type === 'zone' || G.type === 'comp') && (G.moved || far)) {
+      if (!G.moved) { pushHist(); G.moved = true; }
+      G.c.x = Math.round((G.ox + dx / B.view.k) / 2) * 2;
+      G.c.y = Math.round((G.oy + dy / B.view.k) / 2) * 2;
+      render();
+    } else if (G.type === 'pan' && (G.moved || far)) {
+      G.moved = true;
+      B.view.x = G.vx + dx; B.view.y = G.vy + dy;
+      applyView();
+    } else if (G.type === 'term' && B.tool === 'wire') {
+      if (far) G.moved = true;
+      if (G.moved) { const w = toWorld(e); updateRubber(G.key, w.x, w.y); }
+    } else if (G.type === 'wire' && far) G.moved = true;
+  }
+
+  function onUp(e) {
+    ptrs.delete(e.pointerId);
+    if (!G) return;
+    if (G.type === 'pinch') { if (ptrs.size === 0) G = null; return; }
+    const g = G;
+    G = null;
+    if (g.type === 'held') { releaseHeld(); return; }
+    if (g.type === 'term') {
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const t = hit && hit.closest && hit.closest('[data-term]');
+      updateRubber(null);
+      if (g.moved && B.tool === 'wire') {
+        if (t && t.dataset.term !== g.key) { B.sel = null; connect(g.key, t.dataset.term); }
+        else render();
+      } else if (!g.moved) termTap(g.key);
+      return;
+    }
+    if (g.type === 'zone') { if (g.moved) persist(); else zoneTap(g.c, g.zone); return; }
+    if (g.type === 'comp') {
+      if (g.moved) persist();
+      else if (B.tool === 'delete') removeComp(g.c);
+      return;
+    }
+    if (g.type === 'wire') { if (!g.moved) wireTap(g.idx); return; }
+    if (g.type === 'pan' && !g.moved) {
+      if (B.sel || B.selWire >= 0 || B.probe.length) { B.sel = null; B.selWire = -1; B.probe = []; render(); }
+    }
+  }
+
+  function onCancel(e) {
+    ptrs.delete(e.pointerId);
+    if (G && G.type === 'held') releaseHeld();
+    if (ptrs.size === 0) G = null;
+    updateRubber(null);
+  }
+
+  function onWheel(e) {
+    e.preventDefault();
+    const p = local(e);
+    if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX)) zoomAt(p.x, p.y, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+    else { B.view.x -= e.deltaX; applyView(); }
+  }
+
+  /* ---------- Панель стенда ---------- */
+  function setPanel(open) {
+    $('#view-bench').classList.toggle('panel-open', open);
+    const t = $('#btn-panel');
+    if (t) t.setAttribute('aria-expanded', String(open));
+  }
+
+  function renderPanel() {
+    const body = $('#panel-body');
+    $('#b-title').textContent = B.mode === 'lab' ? B.lab.title : 'Песочница';
+    $('#b-eyebrow').textContent = B.mode === 'lab' ? `Задание ${ET.LABS.indexOf(B.lab) + 1} · ${B.lab.group}` : 'Свободная сборка';
+    if (B.mode === 'lab') {
+      const lab = B.lab;
+      body.innerHTML = `
+        <p class="goal">${esc(lab.goal)}</p>
+        <div class="howto">
+          <p><b>Провод:</b> нажмите клемму, потом вторую. Или протяните от клеммы к клемме.</p>
+          <p><b>Аппараты:</b> нажимайте на рычаги, клавиши и кнопки. Кнопки работают, пока их держите.</p>
+          <p><b>Плата:</b> двигайте пальцем по пустому месту, масштаб — двумя пальцами или колесом.</p>
+        </div>
+        <details class="hints"><summary>Подсказка по шагам</summary><ol>${lab.hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ol></details>
+        <div class="panel-actions">
+          <button type="button" class="btn btn-primary" id="btn-check">Проверить схему</button>
+          <button type="button" class="btn btn-ghost" id="btn-clear">Снять все провода</button>
+        </div>
+        <div id="results" aria-live="polite"></div>`;
+      $('#btn-check').onclick = runCheck;
+      armClear($('#btn-clear'));
+      renderResults();
+    } else {
+      const groups = {};
+      for (const [type, d] of Object.entries(ET.CATALOG)) (groups[d.group] = groups[d.group] || []).push([type, d]);
+      body.innerHTML = `
+        <p class="goal">Собирайте любые схемы: добавляйте аппараты, перетаскивайте их и соединяйте проводами. Симулятор покажет, что заработает, а что выбьет.</p>
+        ${Object.entries(groups).map(([g, items]) => `
+          <h3 class="pal-h">${esc(g)}</h3>
+          <div class="palette">${items.map(([t, d]) => `<button type="button" class="pal-item" data-add="${t}">${esc(d.title)}</button>`).join('')}</div>`).join('')}
+        <p class="note">Удалить аппарат: инструмент «Удалить», затем нажмите на аппарат.</p>
+        <div class="panel-actions">
+          <button type="button" class="btn btn-ghost" id="btn-clear">Снять все провода</button>
+          <button type="button" class="btn btn-ghost" id="btn-reset-sb">Очистить песочницу</button>
+        </div>`;
+      $$('[data-add]', body).forEach((b) => (b.onclick = () => addComp(b.dataset.add)));
+      armClear($('#btn-clear'));
+      armConfirm($('#btn-reset-sb'), 'Удалить всё?', () => {
+        pushHist();
+        B.board = { comps: [], wires: [] };
+        changed();
+      });
+    }
+  }
+
+  function armConfirm(btn, ask, fn) {
+    const label = btn.textContent;
+    let armed = false, timer = 0;
+    btn.onclick = () => {
+      if (!armed) {
+        armed = true; btn.textContent = ask; btn.classList.add('btn-bad');
+        timer = setTimeout(() => { armed = false; btn.textContent = label; btn.classList.remove('btn-bad'); }, 3000);
+        return;
+      }
+      clearTimeout(timer); armed = false; btn.textContent = label; btn.classList.remove('btn-bad');
+      fn();
+    };
+  }
+  function armClear(btn) {
+    armConfirm(btn, 'Нажмите ещё раз', () => {
+      pushHist();
+      B.board.wires = B.board.wires.filter((w) => w.locked);
+      B.sel = null; B.selWire = -1;
+      changed();
+    });
+  }
+
+  function runCheck() {
+    const res = ET.check.checkLab(B.board, B.lab, B.live);
+    B.result = res;
+    if (res.ok) {
+      const prev = DB.progress[B.lab.id] || 0;
+      DB.progress[B.lab.id] = Math.max(prev, res.stars);
+      save();
+    }
+    renderResults();
+    setPanel(true);
+    const r = $('#results');
+    if (r) r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function stars(n, total = 3) {
+    let s = '';
+    for (let i = 0; i < total; i++) s += `<svg class="star ${i < n ? 'is-on' : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.5L12 17.3 6.1 20.5l1.3-6.5L2.5 9.4l6.6-.8z"/></svg>`;
+    return `<span class="stars" aria-label="${n} из ${total}">${s}</span>`;
+  }
+
+  function renderResults() {
+    const el = $('#results');
+    if (!el) return;
+    const r = B.result;
+    if (!r) { el.innerHTML = ''; return; }
+    let h = `<div class="res-head ${r.ok ? 'is-ok' : 'is-bad'}">${r.ok ? `Схема работает ${stars(r.stars)}` : 'Схема пока не работает как нужно'}</div><ul class="res-list">`;
+    for (const s of r.scenarios) h += `<li class="${s.ok ? 'ok' : 'bad'}"><b>${esc(s.name)}</b>${s.ok ? '' : `<span>${esc(s.msg)}</span>`}</li>`;
+    for (const p of r.pe) h += `<li class="${p.ok ? 'ok' : 'bad'}"><b>Заземление ${esc(p.term)}</b>${p.ok ? '' : '<span>Корпус не подключён к PE. Протяните жёлто-зелёный провод от PE ввода или шины PE.</span>'}</li>`;
+    h += `</ul>`;
+    if (r.remarks.length) h += `<div class="remarks"><b>Замечания${r.ok ? ' (минус звезда)' : ''}:</b><ul>${r.remarks.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if (r.ok) {
+      const i = ET.LABS.indexOf(B.lab);
+      const next = ET.LABS[i + 1];
+      if (next) h += `<a class="btn btn-primary btn-block" href="#lab-${next.id}">Следующее: ${esc(next.title)}</a>`;
+      else h += `<p class="note">Все задания пройдены. Попробуйте песочницу или тест.</p>`;
+    }
+    el.innerHTML = h;
+  }
+
+  function setTool(t) {
+    B.tool = t;
+    B.sel = null; B.selWire = -1; B.probe = [];
+    $$('.tb-btn[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+    $('#board').dataset.tool = t;
+    render();
+  }
+
+  function setColor(c) {
+    B.color = c;
+    $$('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.color === c)));
+    if (B.tool !== 'wire') setTool('wire');
+  }
+
+  function openBench(mode, lab) {
+    B.mode = mode; B.lab = lab || null;
+    B.board = mode === 'lab' ? boardFromLab(lab) : boardFromSandbox();
+    B.hist = []; B.sel = null; B.selWire = -1; B.probe = []; B.live = 0; B.faults = new Set(); B.result = null;
+    showView('bench');
+    $('#check-label').textContent = mode === 'lab' ? 'Проверить' : 'Аппараты';
+    renderPanel();
+    setPanel(false);
+    simulate();
+    B.faults = new Set(B.sim.faults.map((f) => f.msg));
+    setTool('wire');
+    requestAnimationFrame(() => { fit(); render(); });
+  }
+
+  /* ---------- Список заданий ---------- */
+  function renderLabs() {
+    const el = $('#view-labs');
+    const groups = [];
+    for (const lab of ET.LABS) {
+      let g = groups.find((x) => x.name === lab.group);
+      if (!g) groups.push((g = { name: lab.group, labs: [] }));
+      g.labs.push(lab);
+    }
+    const done = ET.LABS.filter((l) => DB.progress[l.id]).length;
+    const totalStars = ET.LABS.reduce((s, l) => s + (DB.progress[l.id] || 0), 0);
+    el.innerHTML = `
+      <div class="page-in">
+        <header class="hero">
+          <p class="eyebrow">Тренажёр электромонтажника</p>
+          <h1>Соберите схему — и включите её</h1>
+          <p class="lede">Подключайте светильники, розетки, щитки и двигатели на виртуальном стенде. Симулятор считает цепь по-настоящему: КЗ выбивает автомат, ошибка с нулём роняет УЗО, а двигатель крутится в ту сторону, в какую вы его подключили.</p>
+          <div class="progress"><span class="mono">${done}/${ET.LABS.length}</span> заданий · ${stars(Math.round(totalStars / Math.max(1, ET.LABS.length)))}<span class="mono">${totalStars}/${ET.LABS.length * 3}</span></div>
+        </header>
+        ${groups.map((g) => `
+          <section class="lab-group">
+            <h2>${esc(g.name)}</h2>
+            <div class="lab-grid">
+              ${g.labs.map((l) => `
+                <a class="lab-card" href="#lab-${l.id}">
+                  <span class="lab-n mono">${String(ET.LABS.indexOf(l) + 1).padStart(2, '0')}</span>
+                  <span class="lab-t">${esc(l.title)}</span>
+                  <span class="lab-b">${esc(l.brief)}</span>
+                  <span class="lab-f"><span class="lvl" aria-label="Сложность ${l.level} из 4">${'<i class="on"></i>'.repeat(l.level)}${'<i></i>'.repeat(4 - l.level)}</span>${stars(DB.progress[l.id] || 0)}</span>
+                </a>`).join('')}
+            </div>
+          </section>`).join('')}
+        <section class="lab-group">
+          <h2>Свободно</h2>
+          <div class="lab-grid">
+            <a class="lab-card lab-card-alt" href="#sandbox"><span class="lab-n mono">∞</span><span class="lab-t">Песочница</span><span class="lab-b">Все аппараты из каталога: соберите свой щиток или схему управления.</span></a>
+            <a class="lab-card lab-card-alt" href="#theory"><span class="lab-n mono">Т</span><span class="lab-t">Теория</span><span class="lab-b">Цвета проводов, обозначения, звезда и треугольник, самоподхват, УЗО.</span></a>
+            <a class="lab-card lab-card-alt" href="#quiz"><span class="lab-n mono">?</span><span class="lab-t">Тест</span><span class="lab-b">${ET.QUIZ.length} вопросов с объяснениями.${DB.quizBest != null ? ` Лучший результат: ${DB.quizBest}/${ET.QUIZ.length}.` : ''}</span></a>
+          </div>
+        </section>
+        <footer class="foot">
+          <p>Установите тренажёр как приложение: на телефоне — «Добавить на главный экран», на компьютере — значок установки в адресной строке. Работает без интернета.</p>
+        </footer>
+      </div>`;
+  }
+
+  function renderTheory() {
+    $('#view-theory').innerHTML = `<div class="page-in">
+      <header class="hero hero-sm"><p class="eyebrow">Справочник</p><h1>Теория</h1></header>
+      <div class="theory">${ET.THEORY.map((t) => `<article class="card"><h2>${esc(t.title)}</h2>${t.body}</article>`).join('')}</div>
+    </div>`;
+  }
+
+  /* ---------- Тест ---------- */
+  const Q = { order: [], i: 0, score: 0, answered: false };
+  function startQuiz() {
+    Q.order = ET.QUIZ.map((_, i) => i).sort(() => Math.random() - 0.5);
+    Q.i = 0; Q.score = 0; Q.answered = false;
+    renderQuiz();
+  }
+  function renderQuiz() {
+    const el = $('#view-quiz');
+    if (Q.i >= Q.order.length) {
+      const best = Math.max(DB.quizBest || 0, Q.score);
+      DB.quizBest = best; save();
+      el.innerHTML = `<div class="page-in quiz"><header class="hero hero-sm"><p class="eyebrow">Тест</p><h1>${Q.score} из ${Q.order.length}</h1>
+        <p class="lede">${Q.score === Q.order.length ? 'Безупречно.' : Q.score >= Q.order.length * 0.8 ? 'Хороший результат. Повторите разделы, где были ошибки.' : 'Загляните в теорию и попробуйте ещё раз.'} Лучший результат: ${best}.</p></header>
+        <div class="panel-actions"><button type="button" class="btn btn-primary" id="q-again">Пройти заново</button><a class="btn btn-ghost" href="#theory">Теория</a></div></div>`;
+      $('#q-again').onclick = startQuiz;
+      return;
+    }
+    const q = ET.QUIZ[Q.order[Q.i]];
+    el.innerHTML = `<div class="page-in quiz">
+      <header class="hero hero-sm"><p class="eyebrow">Вопрос ${Q.i + 1} из ${Q.order.length} · верно ${Q.score}</p><h1 class="q">${esc(q.q)}</h1></header>
+      <div class="answers">${q.a.map((a, i) => `<button type="button" class="answer" data-a="${i}">${esc(a)}</button>`).join('')}</div>
+      <div id="q-expl" class="q-expl" hidden></div>
+    </div>`;
+    Q.answered = false;
+    $$('[data-a]', el).forEach((b) => (b.onclick = () => {
+      if (Q.answered) return;
+      Q.answered = true;
+      const i = +b.dataset.a;
+      if (i === q.c) Q.score++;
+      $$('[data-a]', el).forEach((x) => {
+        const j = +x.dataset.a;
+        x.disabled = true;
+        if (j === q.c) x.classList.add('is-right');
+        else if (j === i) x.classList.add('is-wrong');
+      });
+      const ex = $('#q-expl');
+      ex.hidden = false;
+      ex.innerHTML = `<p><b>${i === q.c ? 'Верно.' : 'Неверно.'}</b> ${esc(q.e)}</p><button type="button" class="btn btn-primary" id="q-next">${Q.i + 1 < Q.order.length ? 'Дальше' : 'Результат'}</button>`;
+      $('#q-next').onclick = () => { Q.i++; renderQuiz(); };
+      $('#q-next').focus();
+    }));
+  }
+
+  /* ---------- Навигация ---------- */
+  function showView(v) {
+    $$('.view').forEach((x) => (x.hidden = x.id !== 'view-' + v));
+    document.body.dataset.view = v;
+  }
+
+  function route() {
+    const h = (location.hash || '#labs').slice(1);
+    let tab = h;
+    if (h.startsWith('lab-')) {
+      const lab = ET.LABS.find((l) => 'lab-' + l.id === h);
+      if (lab) { openBench('lab', lab); tab = 'labs'; } else { location.hash = '#labs'; return; }
+    } else if (h === 'sandbox') openBench('sandbox');
+    else if (h === 'theory') { renderTheory(); showView('theory'); }
+    else if (h === 'quiz') { startQuiz(); showView('quiz'); }
+    else { tab = 'labs'; renderLabs(); showView('labs'); }
+    $$('[data-nav]').forEach((a) => a.setAttribute('aria-current', a.dataset.nav === tab ? 'page' : 'false'));
+    if (!h.startsWith('lab-') && h !== 'sandbox') window.scrollTo(0, 0);
+  }
+
+  /* ---------- Запуск ---------- */
+  function init() {
+    const svg = $('#board');
+    svg.addEventListener('pointerdown', onDown);
+    svg.addEventListener('pointermove', onMove);
+    svg.addEventListener('pointerup', onUp);
+    svg.addEventListener('pointercancel', onCancel);
+    svg.addEventListener('lostpointercapture', (e) => { if (G && G.type === 'held' && ptrs.has(e.pointerId)) onCancel(e); });
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    svg.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    $('#colors').innerHTML = WIRE_COLORS.map((c) => `<button type="button" class="swatch sw-${c.id}" data-color="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}" aria-pressed="false"></button>`).join('');
+    $$('[data-color]').forEach((b) => (b.onclick = () => setColor(b.dataset.color)));
+    $$('.tb-btn[data-tool]').forEach((b) => (b.onclick = () => setTool(b.dataset.tool)));
+    setColor('brown');
+    $('#btn-undo').onclick = undo;
+    $('#btn-fit').onclick = fit;
+    $('#btn-panel').onclick = () => setPanel(!$('#view-bench').classList.contains('panel-open'));
+    $('#btn-panel-close').onclick = () => setPanel(false);
+    $('#btn-check-tb').onclick = () => { if (B.mode === 'lab') runCheck(); else setPanel(true); };
+
+    document.addEventListener('keydown', (e) => {
+      if (document.body.dataset.view !== 'bench' || e.target.closest('input,textarea')) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+      else if (e.key === 'Escape') { B.sel = null; B.selWire = -1; B.probe = []; render(); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && B.selWire >= 0) { e.preventDefault(); deleteWire(B.selWire); }
+      else if (e.key === '1') setTool('wire');
+      else if (e.key === '2') setTool('delete');
+      else if (e.key === '3') setTool('probe');
+    });
+    window.addEventListener('pointerup', () => { if (held && !G) releaseHeld(); });
+    window.addEventListener('blur', releaseHeld);
+    let rt = 0;
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (document.body.dataset.view === 'bench') fit(); }, 150); });
+    window.addEventListener('hashchange', route);
+    route();
+
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !document.documentElement.dataset.noSw) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})(window.ET);
+
+</script>
+</body>
+</html>
