@@ -8,6 +8,7 @@
 
   function prepare(board, lab) {
     const b = JSON.parse(JSON.stringify(board));
+    b.now = 0;
     for (const c of b.comps) {
       const d = def(c);
       c.state = d.init ? d.init() : {};
@@ -36,7 +37,8 @@
     }
     if (c.state.burnt) return 'сгорела';
     if (st.on) return c.type === 'socket' ? 'есть 230 В' : 'горит';
-    return hasPhase(r, c) ? 'не горит, но на клеммах есть фаза' : c.type === 'socket' ? 'нет напряжения' : 'не горит';
+    if (c.type === 'socket') return hasPhase(r, c) ? 'фаза на розетке есть, но напряжения L–N нет (разорван ноль)' : 'нет напряжения';
+    return hasPhase(r, c) ? 'не горит, но на клеммах есть фаза' : 'не горит';
   }
 
   function runScenario(board, lab, sc) {
@@ -49,12 +51,11 @@
         const st = r.status[c.id];
         if (st && 'on' in st && !st.on && def(c).loads && def(c).loads[0].kind === 'lamp' && hasPhase(r, c)) phaseWhenOff[c.id] = true;
       }
-      const f = r.faults.find((x) => HARD.has(x.type));
-      return f ? f.msg : null;
+      return r.faults.find((x) => HARD.has(x.type)) || null;
     };
     r = evaluate(b);
     let fault = track();
-    if (fault) return { ok: false, msg: `При подаче питания: ${fault}` };
+    if (fault) return { ok: false, msg: `При подаче питания: ${fault.msg}`, comp: fault.comp };
     for (const step of sc.steps) {
       const [op, id, arg, msg] = step;
       const c = byId(id);
@@ -70,18 +71,19 @@
         else if (arg === 'mark') { mark[id] = !!st.on; continue; }
         else if (arg === 'toggled') { ok = !!st.on !== mark[id]; mark[id] = !!st.on; }
         else if (arg === 'offIsDead') ok = !phaseWhenOff[id];
-        if (!ok) return { ok: false, msg: `${msg}. Сейчас ${id}: ${actualText(c, st, r)}.` };
+        if (!ok) return { ok: false, msg: `${msg}. Сейчас ${id}: ${actualText(c, st, r)}.`, comp: id };
         continue;
       }
       if (op === 'set') Object.assign(c.state, arg);
       else if (op === 'press') c.state.pressed = true;
       else if (op === 'release') c.state.pressed = false;
       else if (op === 'test') def(c).tap(c, 'test');
+      else if (op === 'wait') b.now += ET.sim.timerDelay(c) + 0.01;
       r = evaluate(b);
       fault = track();
       if (fault) {
-        const what = op === 'press' ? `при нажатии ${id}` : op === 'release' ? `при отпускании ${id}` : op === 'test' ? `при нажатии «Тест» ${id}` : `при переключении ${id}`;
-        return { ok: false, msg: `Авария ${what}: ${fault}` };
+        const what = op === 'wait' ? `после выдержки ${id}` : op === 'press' ? `при нажатии ${id}` : op === 'release' ? `при отпускании ${id}` : op === 'test' ? `при нажатии «Тест» ${id}` : `при переключении ${id}`;
+        return { ok: false, msg: `Авария ${what}: ${fault.msg}`, comp: fault.comp };
       }
     }
     return { ok: true };

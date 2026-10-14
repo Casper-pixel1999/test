@@ -30,7 +30,7 @@
     tool: 'wire', color: 'brown',
     sel: null, selWire: -1, probe: [],
     view: { x: 0, y: 0, k: 1 },
-    sim: null, hist: [], live: 0, faults: new Set(),
+    sim: null, hist: [], live: 0, faults: new Set(), exam: null, problem: new Set(),
     result: null,
   };
 
@@ -49,8 +49,9 @@
     const comps = lab.comps.map((c) => ({ id: c.id, type: c.type, x: c.x, y: c.y, params: { ...(c.params || {}) } }));
     if (saved && saved.pos) for (const c of comps) if (saved.pos[c.id]) [c.x, c.y] = saved.pos[c.id];
     comps.forEach((c) => (c.state = initState(c)));
-    const wires = (lab.wires || []).map((w) => ({ ...w }));
-    if (saved && saved.wires) wires.push(...saved.wires.map((w) => ({ a: w.a, b: w.b, color: w.color })));
+    let wires = (lab.wires || []).map((w) => ({ ...w }));
+    if (lab.fault && saved && saved.all) wires = saved.all.map((w) => ({ ...w }));
+    else if (saved && saved.wires) wires.push(...saved.wires.map((w) => ({ a: w.a, b: w.b, color: w.color })));
     return { comps, wires };
   }
 
@@ -68,7 +69,9 @@
     if (B.mode === 'lab') {
       const pos = {};
       B.board.comps.forEach((c) => (pos[c.id] = [c.x, c.y]));
-      DB.boards['lab:' + B.lab.id] = { pos, wires: B.board.wires.filter((w) => !w.locked).map(({ a, b, color }) => ({ a, b, color })) };
+      DB.boards['lab:' + B.lab.id] = B.lab.fault
+        ? { pos, all: B.board.wires.map((w) => ({ ...w })) }
+        : { pos, wires: B.board.wires.filter((w) => !w.locked).map(({ a, b, color }) => ({ a, b, color })) };
     } else {
       DB.boards.sandbox = {
         comps: B.board.comps.map(({ id, type, x, y, params }) => ({ id, type, x, y, params })),
@@ -94,8 +97,17 @@
   }
 
   /* ---------- Симуляция и уведомления ---------- */
+  let timerTick = 0;
   function simulate() {
+    B.board.now = performance.now() / 1000;
     B.sim = evaluate(B.board);
+    // Реле времени: пересчитать схему, когда истечёт выдержка
+    clearTimeout(timerTick);
+    let wait = Infinity;
+    for (const c of B.board.comps) {
+      if (c.type === 'timer' && c.state.on && !c.state.done) wait = Math.min(wait, c.state.since + ET.sim.timerDelay(c) - B.board.now);
+    }
+    if (wait < Infinity) timerTick = setTimeout(() => { if (B.board) { simulate(); render(); } }, Math.max(20, wait * 1000 + 20));
     const now = new Set();
     for (const f of B.sim.faults) {
       now.add(f.msg);
@@ -105,6 +117,7 @@
   }
 
   function changed(opts = {}) {
+    if (!opts.keepResult) B.problem = new Set();
     simulate();
     render();
     if (!opts.noSave) persist();
@@ -175,6 +188,7 @@
     for (const c of B.board.comps) {
       const d = def(c);
       s += `<g class="comp" data-comp="${esc(c.id)}" transform="translate(${c.x} ${c.y})">`;
+      if (B.problem && B.problem.has(c.id)) s += `<rect x="-8" y="-24" width="${d.w + 16}" height="${d.h + 32}" rx="10" class="problem-ring"/>`;
       if (!d.sources) s += `<text x="0" y="-13" class="t-id">${esc(c.id)}</text>`;
       s += d.render(c, st[c.id]);
       s += `</g>`;
@@ -536,21 +550,39 @@
     $('#b-eyebrow').textContent = B.mode === 'lab' ? `Задание ${ET.LABS.indexOf(B.lab) + 1} · ${B.lab.group}` : 'Свободная сборка';
     if (B.mode === 'lab') {
       const lab = B.lab;
+      const scheme = ET.schemeFor(lab);
+      const ex = B.exam;
       body.innerHTML = `
         <p class="goal">${esc(lab.goal)}</p>
-        <div class="howto">
+        <label class="exam-toggle"><input type="checkbox" id="exam-on" ${ex ? 'checked' : ''}> <span><b>Режим экзамена</b> — без подсказок и схемы, на время</span></label>
+        ${ex ? `<div class="exam-bar"><span>Время</span><b class="mono" id="exam-time">0:00</b><span>Проверок</span><b class="mono">${ex.tries}</b></div>` : ''}
+        ${!ex && scheme ? `<details class="scheme-box" ${lab.fault ? 'open' : ''}><summary>Принципиальная схема</summary><button type="button" class="scheme-open" id="scheme-open" aria-label="Открыть схему крупно">${scheme}</button><p class="note">Нажмите на схему, чтобы увеличить.</p></details>` : ''}
+        ${ex ? '' : `<div class="howto">
           <p><b>Провод:</b> нажмите клемму, потом вторую. Или протяните от клеммы к клемме.</p>
           <p><b>Аппараты:</b> нажимайте на рычаги, клавиши и кнопки. Кнопки работают, пока их держите.</p>
-          <p><b>Плата:</b> двигайте пальцем по пустому месту, масштаб — двумя пальцами или колесом.</p>
+          <p><b>Тестер:</b> показывает фазу или ноль на клемме и напряжение между двумя точками.</p>
         </div>
-        <details class="hints"><summary>Подсказка по шагам</summary><ol>${lab.hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ol></details>
+        <details class="hints"><summary>${lab.fault ? 'Как искать неисправность' : 'Подсказка по шагам'}</summary><ol>${lab.hints.map((h) => `<li>${esc(h)}</li>`).join('')}</ol></details>`}
         <div class="panel-actions">
-          <button type="button" class="btn btn-primary" id="btn-check">Проверить схему</button>
-          <button type="button" class="btn btn-ghost" id="btn-clear">Снять все провода</button>
+          <button type="button" class="btn btn-primary" id="btn-check">${lab.fault ? 'Проверить ремонт' : 'Проверить схему'}</button>
+          <button type="button" class="btn btn-ghost" id="btn-reset-lab">Начать заново</button>
         </div>
         <div id="results" aria-live="polite"></div>`;
       $('#btn-check').onclick = runCheck;
-      armClear($('#btn-clear'));
+      armConfirm($('#btn-reset-lab'), 'Сбросить задание?', () => {
+        delete DB.boards['lab:' + lab.id]; save();
+        B.board = boardFromLab(lab); B.hist = []; B.live = 0; B.result = null;
+        if (B.exam) B.exam = { start: Date.now(), tries: 0 };
+        renderPanel(); changed({ noSave: true }); fit();
+      });
+      $('#exam-on').onchange = (e) => {
+        B.exam = e.target.checked ? { start: Date.now(), tries: 0 } : null;
+        B.result = null;
+        renderPanel();
+        if (B.exam) toast('Экзамен начат: подсказки и схема скрыты, время пошло');
+      };
+      const so = $('#scheme-open');
+      if (so) so.onclick = () => openScheme(lab);
       renderResults();
     } else {
       const groups = {};
@@ -600,15 +632,44 @@
   function runCheck() {
     const res = ET.check.checkLab(B.board, B.lab, B.live);
     B.result = res;
+    B.problem = new Set(res.scenarios.filter((x) => !x.ok && x.comp).map((x) => x.comp));
+    for (const p of res.pe) if (!p.ok) B.problem.add(p.term.split('.')[0]);
+    if (B.exam) {
+      B.exam.tries++;
+      if (res.ok) {
+        const sec = Math.round((Date.now() - B.exam.start) / 1000);
+        res.examTime = sec; res.examTries = B.exam.tries;
+        DB.exam = DB.exam || {};
+        const prev = DB.exam[B.lab.id];
+        if (!prev || sec < prev.time) DB.exam[B.lab.id] = { time: sec, tries: B.exam.tries };
+      }
+    }
     if (res.ok) {
       const prev = DB.progress[B.lab.id] || 0;
       DB.progress[B.lab.id] = Math.max(prev, res.stars);
-      save();
     }
-    renderResults();
+    save();
+    render();
+    if (B.exam) { if (res.ok) B.exam = null; renderPanel(); } else renderResults();
     setPanel(true);
     const r = $('#results');
     if (r) r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  const fmtTime = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  setInterval(() => {
+    const el = document.getElementById('exam-time');
+    if (el && B.exam) el.textContent = fmtTime(Math.round((Date.now() - B.exam.start) / 1000));
+  }, 500);
+
+  function openScheme(lab) {
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = `<div class="overlay-card" role="dialog" aria-label="Принципиальная схема"><div class="overlay-head"><b>${esc(lab.title)}: схема</b><button type="button" class="icon-btn" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button></div><div class="overlay-body">${ET.schemeFor(lab)}</div></div>`;
+    const close = () => ov.remove();
+    ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('.icon-btn')) close(); });
+    document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', k); } });
+    document.body.appendChild(ov);
   }
 
   function stars(n, total = 3) {
@@ -622,7 +683,10 @@
     if (!el) return;
     const r = B.result;
     if (!r) { el.innerHTML = ''; return; }
-    let h = `<div class="res-head ${r.ok ? 'is-ok' : 'is-bad'}">${r.ok ? `Схема работает ${stars(r.stars)}` : 'Схема пока не работает как нужно'}</div><ul class="res-list">`;
+    let h = `<div class="res-head ${r.ok ? 'is-ok' : 'is-bad'}">${r.ok ? `${B.lab.fault ? 'Неисправность устранена' : 'Схема работает'} ${stars(r.stars)}` : B.lab.fault ? 'Неисправность ещё не устранена' : 'Схема пока не работает как нужно'}</div>`;
+    if (r.examTime != null) h += `<p class="exam-done">Экзамен сдан за <b class="mono">${fmtTime(r.examTime)}</b>, проверок: ${r.examTries}. Лучшее время: <b class="mono">${fmtTime(DB.exam[B.lab.id].time)}</b>.</p>`;
+    if (!r.ok && B.problem.size) h += `<p class="note">Аппарат, на котором проявилась ошибка, обведён на плате красным.</p>`;
+    h += `<ul class="res-list">`;
     for (const s of r.scenarios) h += `<li class="${s.ok ? 'ok' : 'bad'}"><b>${esc(s.name)}</b>${s.ok ? '' : `<span>${esc(s.msg)}</span>`}</li>`;
     for (const p of r.pe) h += `<li class="${p.ok ? 'ok' : 'bad'}"><b>Заземление ${esc(p.term)}</b>${p.ok ? '' : '<span>Корпус не подключён к PE. Протяните жёлто-зелёный провод от PE ввода или шины PE.</span>'}</li>`;
     h += `</ul>`;
@@ -653,7 +717,7 @@
   function openBench(mode, lab) {
     B.mode = mode; B.lab = lab || null;
     B.board = mode === 'lab' ? boardFromLab(lab) : boardFromSandbox();
-    B.hist = []; B.sel = null; B.selWire = -1; B.probe = []; B.live = 0; B.faults = new Set(); B.result = null;
+    B.hist = []; B.sel = null; B.selWire = -1; B.probe = []; B.live = 0; B.faults = new Set(); B.result = null; B.exam = null; B.problem = new Set();
     showView('bench');
     $('#check-label').textContent = mode === 'lab' ? 'Проверить' : 'Аппараты';
     renderPanel();
@@ -692,7 +756,7 @@
                   <span class="lab-n mono">${String(ET.LABS.indexOf(l) + 1).padStart(2, '0')}</span>
                   <span class="lab-t">${esc(l.title)}</span>
                   <span class="lab-b">${esc(l.brief)}</span>
-                  <span class="lab-f"><span class="lvl" aria-label="Сложность ${l.level} из 4">${'<i class="on"></i>'.repeat(l.level)}${'<i></i>'.repeat(4 - l.level)}</span>${stars(DB.progress[l.id] || 0)}</span>
+                  <span class="lab-f"><span class="lvl" aria-label="Сложность ${l.level} из 4">${'<i class="on"></i>'.repeat(l.level)}${'<i></i>'.repeat(4 - l.level)}</span>${DB.exam && DB.exam[l.id] ? `<span class="exam-badge" title="Экзамен сдан">экзамен ${fmtTime(DB.exam[l.id].time)}</span>` : ''}${stars(DB.progress[l.id] || 0)}</span>
                 </a>`).join('')}
             </div>
           </section>`).join('')}
@@ -700,7 +764,7 @@
           <h2>Свободно</h2>
           <div class="lab-grid">
             <a class="lab-card lab-card-alt" href="#sandbox"><span class="lab-n mono">∞</span><span class="lab-t">Песочница</span><span class="lab-b">Все аппараты из каталога: соберите свой щиток или схему управления.</span></a>
-            <a class="lab-card lab-card-alt" href="#theory"><span class="lab-n mono">Т</span><span class="lab-t">Теория</span><span class="lab-b">Цвета проводов, обозначения, звезда и треугольник, самоподхват, УЗО.</span></a>
+            <a class="lab-card lab-card-alt" href="#theory"><span class="lab-n mono">Т</span><span class="lab-t">Теория и расчёты</span><span class="lab-b">Цвета проводов, обозначения, звезда и треугольник, УЗО. Калькулятор автомата, кабеля и теплового реле.</span></a>
             <a class="lab-card lab-card-alt" href="#quiz"><span class="lab-n mono">?</span><span class="lab-t">Тест</span><span class="lab-b">${ET.QUIZ.length} вопросов с объяснениями.${DB.quizBest != null ? ` Лучший результат: ${DB.quizBest}/${ET.QUIZ.length}.` : ''}</span></a>
           </div>
         </section>
@@ -712,9 +776,71 @@
 
   function renderTheory() {
     $('#view-theory').innerHTML = `<div class="page-in">
-      <header class="hero hero-sm"><p class="eyebrow">Справочник</p><h1>Теория</h1></header>
-      <div class="theory">${ET.THEORY.map((t) => `<article class="card"><h2>${esc(t.title)}</h2>${t.body}</article>`).join('')}</div>
+      <header class="hero hero-sm"><p class="eyebrow">Справочник</p><h1>Теория и расчёты</h1></header>
+      <div class="theory">
+        <article class="card calc" id="calc">
+          <h2>Калькулятор: что поставить</h2>
+          <div class="calc-tabs" role="tablist">
+            <button type="button" role="tab" data-calc="motor" aria-selected="true">Двигатель 3~</button>
+            <button type="button" role="tab" data-calc="load" aria-selected="false">Нагрузка 230 В</button>
+          </div>
+          <div class="calc-form" id="calc-form"></div>
+          <div class="calc-out" id="calc-out" aria-live="polite"></div>
+          <p class="note">Медь, прокладка открыто или в трубе, ПУЭ табл. 1.3.4–1.3.5 (с запасом). Для реальных объектов расчёт выполняет проектировщик с учётом длины линии и условий прокладки.</p>
+        </article>
+        ${ET.THEORY.map((t) => `<article class="card"><h2>${esc(t.title)}</h2>${t.body}</article>`).join('')}
+      </div>
     </div>`;
+    initCalc();
+  }
+
+  /* ---------- Калькулятор ---------- */
+  const BREAKERS = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+  const CABLE = [[1.5, 19], [2.5, 25], [4, 35], [6, 42], [10, 55], [16, 75], [25, 95], [35, 120]];
+  function initCalc() {
+    let mode = 'motor';
+    const form = $('#calc-form'), out = $('#calc-out');
+    const field = (id, label, val, step, unit) => `<label class="calc-f"><span>${label}</span><span class="calc-in"><input id="${id}" type="number" inputmode="decimal" step="${step}" min="0" value="${val}"><i>${unit}</i></span></label>`;
+    function draw() {
+      form.innerHTML = mode === 'motor'
+        ? field('c-p', 'Мощность (шильдик)', 4, 0.1, 'кВт') + field('c-u', 'Напряжение сети', 400, 1, 'В') + field('c-cos', 'cos φ', 0.84, 0.01, '') + field('c-eta', 'КПД', 0.86, 0.01, '')
+        : field('c-p', 'Мощность нагрузки', 2000, 50, 'Вт') + field('c-u', 'Напряжение', 230, 1, 'В');
+      $$('input', form).forEach((i) => (i.oninput = calc));
+      $$('[data-calc]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.calc === mode)));
+      calc();
+    }
+    function calc() {
+      const v = (id) => parseFloat(String($('#' + id).value).replace(',', '.')) || 0;
+      let I, rows;
+      if (mode === 'motor') {
+        I = (v('c-p') * 1000) / (Math.sqrt(3) * v('c-u') * v('c-cos') * v('c-eta'));
+        const br = BREAKERS.find((x) => x >= I * 1.25) || BREAKERS[BREAKERS.length - 1];
+        const cab = CABLE.find(([, a]) => a >= br) || CABLE[CABLE.length - 1];
+        rows = [
+          ['Номинальный ток', `${I.toFixed(1)} А`],
+          ['Автомат QF', `${br} А, характеристика D (или C при лёгком пуске)`],
+          ['Контактор KM', `не меньше ${Math.ceil(I)} А в категории AC-3`],
+          ['Тепловое реле KK', `уставка ≈ ${(I * 1.05).toFixed(1)} А (1,05 × Iном)`],
+          ['Кабель (медь)', `${cab[0]} мм² × 4 (до ${cab[1]} А) + PE`],
+          ['Пусковой ток', `≈ ${(I * 6.5).toFixed(0)} А (6–7 × Iном)`],
+        ];
+      } else {
+        I = v('c-p') / v('c-u');
+        const br = BREAKERS.find((x) => x >= I) || BREAKERS[BREAKERS.length - 1];
+        const cab = CABLE.find(([, a]) => a >= br) || CABLE[CABLE.length - 1];
+        rows = [
+          ['Ток', `${I.toFixed(1)} А`],
+          ['Автомат QF', `${br} А, характеристика C`],
+          ['Кабель (медь)', `${cab[0]} мм² × 3 (L, N, PE), до ${cab[1]} А`],
+          ['УЗО', `${Math.max(25, BREAKERS.find((x) => x >= br * 1.25) || br)} А, 30 мА (для розеток обязательно)`],
+        ];
+      }
+      out.innerHTML = Number.isFinite(I) && I > 0
+        ? `<table class="tbl"><tbody>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b.replace(/(\d)\.(\d)/g, '$1,$2')}</td></tr>`).join('')}</tbody></table>`
+        : '<p class="note">Введите положительные значения.</p>';
+    }
+    $$('[data-calc]').forEach((b) => (b.onclick = () => { mode = b.dataset.calc; draw(); }));
+    draw();
   }
 
   /* ---------- Тест ---------- */

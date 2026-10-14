@@ -354,6 +354,9 @@ body[data-view="bench"] { overflow: hidden; }
 .tag-plate { fill: #f4f2e8; stroke: #b8b49d; stroke-width: .6; }
 .btn-ring-sm { fill: #3a434c; }
 .lamp-live { fill: #36e27a; stroke: #138a43; stroke-width: .8; }
+.led-yellow { fill: #ffc21a; stroke: #9a7300; stroke-width: .8; }
+.timer-run { fill: #f2b705; animation: blink .6s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .2; } }
 .lamp-dead { fill: #4f5a52; stroke: #2b322d; stroke-width: .8; }
 .smoke circle { fill: #6b6f72; opacity: .55; }
 .smoke { animation: smoke 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center bottom; }
@@ -500,3 +503,46 @@ body[data-view="bench"] { overflow: hidden; }
   .spin-fwd, .spin-rev, .hum, .toast, .smoke { animation: none; }
   .panel, .lab-card, .toast { transition: none; }
 }
+
+/* ---------- Экзамен, схемы, калькулятор ---------- */
+.problem-ring { fill: none; stroke: var(--bad); stroke-width: 3; stroke-dasharray: 8 5; animation: problem 1s ease-in-out infinite alternate; }
+@keyframes problem { to { stroke-opacity: .35; } }
+.exam-toggle { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.exam-toggle input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.exam-bar { display: flex; align-items: baseline; gap: 8px 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 8px; background: var(--bar); color: var(--bar-ink); font-size: 13px; }
+.exam-bar b { font-size: 18px; color: var(--accent); margin-right: 8px; }
+.exam-done { margin: 8px 0 0; font-size: 14px; }
+.exam-badge { margin-left: auto; margin-right: 8px; font: 700 11px var(--f-mono); padding: 3px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--ink); }
+
+.scheme-box summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.scheme-open { display: block; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); cursor: zoom-in; }
+.scheme { width: 100%; height: auto; display: block; color: var(--ink); }
+.scheme path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.scheme .sc-dash { stroke-dasharray: 3 3; stroke-width: 1; }
+.scheme .sc-thin { stroke-width: 1; }
+.scheme .sc-pe { stroke: var(--ok); stroke-dasharray: 6 3; }
+.scheme .sc-bus { stroke-width: 3; }
+.scheme .sc-box { fill: var(--surface); stroke: currentColor; stroke-width: 1.4; }
+.scheme .sc-fill { fill: currentColor; }
+.scheme .sc-dot { fill: currentColor; }
+.scheme text { fill: currentColor; font: 600 8px var(--f-body); }
+.scheme .sc-tb { font: 800 9px var(--f-mono); }
+.scheme .sc-ts { font: 500 7px var(--f-body); fill: var(--muted); }
+
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(8, 12, 16, .6); display: grid; place-items: center; padding: 16px; }
+.overlay-card { width: min(900px, 100%); max-height: 100%; overflow: auto; background: var(--surface); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+.overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+.overlay-body { padding: 16px; }
+
+.calc { display: grid; gap: 12px; align-content: start; }
+.calc h2 { margin: 0; }
+.calc-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.calc-tabs button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; font-weight: 600; }
+.calc-tabs button[aria-selected="true"] { background: var(--bar); color: var(--bar-ink); border-color: var(--bar); }
+.calc-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.calc-f { min-width: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.calc-in { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding-right: 10px; }
+.calc-in input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; padding: 10px; font: 600 16px var(--f-mono); color: var(--ink); }
+.calc-in i { font-style: normal; color: var(--muted); font-size: 13px; }
+.calc-out .tbl td:first-child { white-space: normal; width: 40%; font-weight: 600; color: var(--muted); }
+.calc-out .tbl td:last-child { font-weight: 700; }

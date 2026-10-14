@@ -10,7 +10,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-JS = ['components.js', 'sim.js', 'labs.js', 'content.js', 'check.js', 'app.js']
+JS = ['components.js', 'sim.js', 'labs.js', 'content.js', 'schemes.js', 'check.js', 'app.js']
 
 
 def read(*p):

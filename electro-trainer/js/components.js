@@ -618,7 +618,7 @@
         else if (mode === 'fwd') label = 'вращение вперёд';
         else if (mode === 'rev') label = 'вращение назад';
         else if (mode === 'hum') label = 'гудит, не крутится';
-        else if (mode.startsWith('weak')) label = 'мало мощности';
+        else if (mode.startsWith('weak')) label = 'звезда: пониженная мощность';
         if (label) {
           const bad = mode === 'hum' || burnt;
           s += `<rect x="${92 - label.length * 2.6 - 8}" y="114" width="${label.length * 5.2 + 16}" height="13" rx="6.5" class="${bad ? 'badge-bad' : 'badge-ok'}"/>`;
@@ -628,6 +628,44 @@
       },
     };
   }
+
+
+  /* ---------- Реле времени (задержка включения) ---------- */
+  const timer = {
+    title: 'Реле времени (задержка вкл.)',
+    group: 'Управление',
+    prefix: 'KT',
+    w: 72, h: 120, modular: true,
+    terms: [term('A1', 18, 9, 'up'), term('15', 54, 9, 'up'), term('A2', 12, 111, 'down'), term('16', 36, 111, 'down'), term('18', 60, 111, 'down')],
+    params: { delay: '3 с' },
+    loads: [{ a: 'A1', b: 'A2', kind: 'coil' }],
+    init: () => ({ on: false, since: null, done: false }),
+    contacts: (c) => [
+      { a: '15', b: '16', tag: 'nc', closed: !c.state.done },
+      { a: '15', b: '18', tag: 'no', closed: !!c.state.done },
+    ],
+    tap(c) { if (c.state.burnt) c.state.burnt = false; },
+    render(c) {
+      const on = c.state.on, done = c.state.done;
+      let s = `<g filter="url(#f-shadow)"><rect x="1" y="0" width="70" height="120" rx="4" fill="url(#g-plastic)" class="dev-edge"/></g>`;
+      s += `<rect x="4" y="23" width="64" height="74" rx="3" fill="url(#g-front)" class="front-edge"/>`;
+      s += terminalWell(18, 9, 24, 16) + terminalWell(54, 9, 24, 16);
+      s += terminalWell(12, 111, 20, 16) + terminalWell(36, 111, 20, 16) + terminalWell(60, 111, 20, 16);
+      s += `<g data-zone="body" class="zone">`;
+      s += text(36, 32, 'РЭВ-201', 't-xxs t-strong');
+      // Светодиоды: U — питание, R — контакт переключился
+      s += `<circle cx="16" cy="42" r="3" class="${on ? 'lamp-live' : 'lamp-dead'}"/>` + text(16, 52, 'U', 't-xxs t-mute');
+      s += `<circle cx="56" cy="42" r="3" class="${done ? 'led-yellow' : 'lamp-dead'}"/>` + text(56, 52, 'R', 't-xxs t-mute');
+      // Ручка уставки времени
+      s += `<circle cx="36" cy="68" r="13" class="dial-ring"/><circle cx="36" cy="68" r="10" fill="url(#g-dial)" class="dial-edge"/>`;
+      s += `<path d="M36 68 L${36 + 7} ${68 - 6}" class="dial-ptr"/>`;
+      s += text(36, 91, (c.params && c.params.delay) || '3 с', 't-xs t-strong');
+      s += `</g>`;
+      // Прогресс выдержки (анимация задаётся из интерфейса)
+      if (on && !done) s += `<rect x="8" y="56" width="4" height="24" rx="2" class="timer-run"/>`;
+      return s;
+    },
+  };
 
   const CATALOG = {
     supply1: supply(false),
@@ -650,6 +688,7 @@
     btnStart: button('start'),
     btnStop: button('stop'),
     contactor,
+    timer,
     thermal,
     motorY: motor(230),
     motorD: motor(400),

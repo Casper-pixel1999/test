@@ -23,7 +23,7 @@
   function buildNets(board, opts = {}) {
     const uf = new UF();
     for (const c of board.comps) for (const t of def(c).terms) uf.find(key(c.id, t.id));
-    for (const w of board.wires) uf.union(w.a, w.b);
+    for (const w of board.wires) if (!w.broken) uf.union(w.a, w.b);
     for (const c of board.comps) {
       const d = def(c);
       if (d.fixed) for (const [a, b] of d.fixed(c)) uf.union(key(c.id, a), key(c.id, b));
@@ -70,6 +70,11 @@
     if (!pa || !pb || pa === pb) return 0;
     if (pa === '0' || pb === '0') return 230;
     return 400;
+  }
+
+  function timerDelay(c) {
+    const m = String((c.params && c.params.delay) || '3').match(/[\d.,]+/);
+    return m ? parseFloat(m[0].replace(',', '.')) : 3;
   }
 
   function describeShort(sc, three) {
@@ -165,7 +170,10 @@
     const three = board.comps.some((c) => c.type === 'supply3');
     let net = null;
     let stable = false;
+    const now = board.now || 0;
+    const timerDone = (c) => !!c.state.on && c.state.since != null && now - c.state.since >= timerDelay(c) - 1e-9;
     for (let iter = 0; iter < 40; iter++) {
+      for (const c of board.comps) if (c.type === 'timer') c.state.done = timerDone(c);
       net = buildNets(board);
       const sc = shortRoots(net);
       if (sc.length) {
@@ -182,14 +190,18 @@
       }
       let changed = false;
       for (const c of board.comps) {
-        if (c.type !== 'contactor') continue;
+        if (c.type !== 'contactor' && c.type !== 'timer') continue;
         const v = volt(net.pot(key(c.id, 'A1')), net.pot(key(c.id, 'A2')));
         if (v > 300 && !c.state.burnt) {
           c.state.burnt = true;
           faults.push({ type: 'burn', comp: c.id, msg: `На катушку ${c.id} подано 400 В вместо 230 В — катушка сгорела` });
         }
         const on = !c.state.burnt && v >= 150 && v <= 300;
-        if (on !== !!c.state.on) { c.state.on = on; changed = true; }
+        if (on !== !!c.state.on) {
+          c.state.on = on; changed = true;
+          if (c.type === 'timer') c.state.since = on ? now : null;
+        }
+        if (c.type === 'timer' && !!c.state.done !== timerDone(c)) changed = true;
       }
       if (changed) continue;
       const rt = checkRcd(board, net);
@@ -260,5 +272,5 @@
     return out;
   }
 
-  ET.sim = { evaluate, buildNets, roles, colorRemarks, volt, key, PHASES, COLOR_NAMES };
+  ET.sim = { evaluate, buildNets, roles, colorRemarks, volt, key, PHASES, COLOR_NAMES, timerDelay };
 })(window.ET);
