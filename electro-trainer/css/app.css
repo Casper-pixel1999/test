@@ -323,12 +323,14 @@ body[data-view="bench"] { overflow: hidden; }
 .t-sm { font-size: 10px; font-weight: 600; }
 .t-md { font-size: 11px; font-weight: 700; }
 .t-xs { font-size: 8px; font-weight: 600; }
-.t-xxs { font-size: 7px; font-weight: 600; }
-.t-strong { font-weight: 800; }
+.t-xxs { font-size: 6.6px; font-weight: 600; }
+.board .t-strong { font-weight: 800; }
+.board .t-mute { fill: #6b747c; }
 .board .t-inv { fill: #fff; }
 .board .t-live { fill: #1b7a3f; }
 .board .t-bad { fill: #c3352a; }
 .board .t-dk { fill: #eef2f5; }
+.board .t-dkm { fill: #9eabb7; }
 .board .t-lit { fill: #5be38f; }
 .board .t-badlit { fill: #ff8f84; }
 .board .t-plate { fill: var(--plate-ink); }
@@ -336,82 +338,141 @@ body[data-view="bench"] { overflow: hidden; }
 .board .t-term { font: 700 8.5px var(--f-mono); fill: var(--plate-ink); }
 .board .t-probe { font: 800 11px var(--f-mono); fill: var(--live); }
 
-.dev { fill: var(--dev); stroke: var(--dev-edge); stroke-width: 1; }
-.dev-face { fill: var(--dev-face); }
-.dev-screw { fill: var(--screw); opacity: .55; }
-.dev-supply { fill: #303a45; stroke: #1b232b; }
-.pin-l { fill: #7a4a26; } .pin-n { fill: #1f5fd1; } .pin-pe { fill: #1f9a3e; }
-.pwr-switch { fill: #5b6670; stroke: #1b232b; }
-.pwr-switch.is-on { fill: var(--live); }
-.pwr-knob { fill: #f4f6f8; }
-.lever-track { fill: #2c343c; }
-.lever { fill: #3b4550; stroke: #1b232b; }
-.lever-rcd { fill: #2c6bd6; }
-.lever.is-tripped { stroke: #c3352a; stroke-width: 2; }
-.ind-on { fill: #d33b2c; }
-.ind-off { fill: #2aa457; }
-.btn-test { fill: #e2a400; stroke: #8a6400; }
-.bus-n { fill: #3b74d9; stroke: #1d4594; }
-.bus-pe { fill: #2aa457; stroke: #17703a; }
-.wago { fill: #f5f6f2; stroke: var(--dev-edge); }
-.wago-lever { fill: #f08a1c; }
-.key { fill: #fdfdfb; stroke: #b6bdc3; }
-.key.is-on { fill: #eef0ec; }
-.key-mark { fill: #d33b2c; }
-.key-arrow { fill: none; stroke: #8b949c; stroke-width: 2; }
-.dev-lamp { fill: #e9ebe7; }
-.glow { fill: url(#glowg); }
-.bulb { fill: #eef1f3; stroke: #a7b0b8; stroke-width: 1.5; }
-.bulb.is-on { fill: #ffe27a; stroke: #e4a800; }
-.bulb.is-burnt { fill: #6c6f70; stroke: #3c3f40; }
-.filament { fill: none; stroke: #8b949c; stroke-width: 1.4; }
-.filament.is-on { stroke: #ff8a00; }
-.crack { fill: none; stroke: #1b1d1e; stroke-width: 1.5; }
-.lamp-base { fill: #9aa3ab; }
-.socket-face { fill: #f1f2ee; stroke: #c3c9ce; }
-.socket-hole { fill: #2e353b; }
-.socket-pe { fill: #b9c0c6; }
-.socket-pe.is-ok { fill: #c6cbd0; stroke: #2aa457; stroke-width: 1.5; }
-.led-on { fill: #2fd06b; } .led-off { fill: #b9c0c6; }
-.pilot { stroke: #8b949c; stroke-width: 2; }
-.pilot-g { fill: #2b5a3a; } .pilot-g.is-on { fill: #3df07b; }
-.pilot-r { fill: #5a2b2b; } .pilot-r.is-on { fill: #ff4b3b; }
-.pilot.is-burnt { fill: #333; }
-.btn-ring { fill: #2c343c; }
-.btn-start { fill: #2aa457; stroke: #17703a; }
-.btn-stop { fill: #d33b2c; stroke: #8f1f16; }
-.km-window { fill: #2c343c; }
-.km-arm { fill: #8b949c; }
-.flag-ok { fill: #2aa457; } .flag-trip { fill: #d33b2c; }
-.btn-trip { fill: #d33b2c; } .btn-reset { fill: #3b74d9; }
-.motor-body { fill: #4d6a86; stroke: #2a3c4f; stroke-width: 1.5; }
-.motor-body.is-burnt { fill: #3a3634; }
-.motor-fin { fill: #5b7b99; opacity: .8; }
-.motor-shaft { fill: #b5bcc3; stroke: #6c757d; }
-.motor-plate { fill: #e7e9e5; stroke: #8b949c; }
-.fan-disc { fill: #34495e; stroke: #22313f; }
-.fan-blade { fill: #b8c4cf; }
-.fan-hub { fill: #f2b705; }
-.rot-arrow { fill: none; stroke: #f2b705; stroke-width: 3; }
+/* Общие детали корпусов */
+.dev-edge { stroke: #8a939b; stroke-width: 1; }
+.front-edge { stroke: #c4cac6; stroke-width: .8; }
+.seam { stroke: #b7bdb9; stroke-width: .8; fill: none; }
+.well { fill: #39424a; stroke: #20262c; stroke-width: .8; }
+.vent { fill: #4a535b; }
+.slot { fill: #2a3138; }
+.lever-edge { stroke: #14181c; stroke-width: .8; }
+.lever-edge.is-tripped { stroke: #ff5446; stroke-width: 2; }
+.grip { fill: #fff; opacity: .16; }
+.flag-red { fill: #d8382a; stroke: #8f1f16; stroke-width: .6; }
+.flag-green { fill: #22a654; stroke: #116b32; stroke-width: .6; }
+.schem { fill: none; stroke: #59636b; stroke-width: 1; }
+.tag-plate { fill: #f4f2e8; stroke: #b8b49d; stroke-width: .6; }
+.btn-ring-sm { fill: #3a434c; }
+.lamp-live { fill: #36e27a; stroke: #138a43; stroke-width: .8; }
+.lamp-dead { fill: #4f5a52; stroke: #2b322d; stroke-width: .8; }
+.smoke circle { fill: #6b6f72; opacity: .55; }
+.smoke { animation: smoke 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes smoke { 0% { transform: translateY(4px) scale(.7); opacity: .2; } 50% { opacity: .9; } 100% { transform: translateY(-10px) scale(1.15); opacity: 0; } }
+
+/* Ввод */
+.cable { fill: #22272c; stroke: #0f1215; }
+.gland { fill: #59636c; stroke: #2a3138; }
+.box-edge { stroke: #1b232b; stroke-width: 1.2; }
+.box-inner { fill: none; stroke: #6b7782; stroke-width: .8; opacity: .6; }
+.rot-plate { fill: #f2c214; stroke: #8a6c00; stroke-width: 1; }
+.rot-ring { fill: #2c343c; }
+.rot-handle { fill: #d8382a; stroke: #7a1810; stroke-width: 1; }
+.rot-hub { fill: #f4f6f8; }
+.mini-rail { fill: #8c959d; }
+.blk-l1 { fill: #7a4a26; } .blk-l2 { fill: #2b2f33; } .blk-l3 { fill: #8b9299; }
+.blk-n { fill: #1f5fd1; } .blk-pe { fill: #e8c51d; }
+.blk-l1, .blk-l2, .blk-l3, .blk-n, .blk-pe { stroke: rgba(0,0,0,.35); stroke-width: 1; }
+
+/* Шины, клеммы */
+.ins-edge { stroke: rgba(0,0,0,.3); }
+.brass-edge { stroke: #7d5d10; stroke-width: .8; }
+.brass-hole { fill: #a8811f; opacity: .55; }
+.wago-edge { stroke: #8f9aa1; }
+.wago-lever-edge { stroke: #a14c00; stroke-width: .6; }
+.grip-w { fill: #fff; opacity: .5; }
+
+/* Бытовые изделия */
+.mech { fill: #d8c79a; stroke: #9a8a5d; stroke-width: .8; }
+.frame-inner { fill: none; stroke: #d2d6d1; stroke-width: 1; }
+.key-edge { stroke: #b3bab5; stroke-width: .9; }
+.key-split { stroke: #c8cec9; stroke-width: .8; }
+.key-split.is-on { stroke: #bfc6c0; }
+.key-led { fill: #d4d9d5; }
+.key-led-on { fill: #ff6a2a; }
+.key-arrow { fill: none; stroke: #8b949c; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.term-strip { fill: #d8c79a; stroke: #9a8a5d; stroke-width: .8; }
+.socket-holder { fill: #e9ebe7; stroke: #a7aea9; }
+.bulb-edge { stroke: #a9b3ba; stroke-width: 1; }
+.bulb-edge.is-on { stroke: #e7a300; }
+.lead { stroke: #8d959c; stroke-width: 1; }
+.filament { fill: none; stroke: #7d858b; stroke-width: 1.2; }
+.filament.is-on { stroke: #ff7a00; stroke-width: 1.6; }
+.glass-hl { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; opacity: .85; }
+.crack { fill: none; stroke: #1b1d1e; stroke-width: 1.3; }
+.socket-recess { fill: #dfe2dd; stroke: #bfc5c0; }
+.socket-floor { fill: #eceee9; }
+.socket-hole { fill: #23292e; }
+.hole-hl { fill: #59626a; }
+.pe-clip { fill: #b9c0c6; stroke: #7f878d; stroke-width: .6; }
+.pe-clip.is-ok { fill: url(#g-brass); stroke: #1f9a3e; stroke-width: 1.4; }
+.glow { pointer-events: none; }
+.bezel-edge { stroke: #7f878d; stroke-width: .8; }
+.lens-hl { fill: #fff; opacity: .55; }
+
+/* Кнопки */
+.cblock-no { fill: #f2f3ef; stroke: #22a654; stroke-width: 1.4; }
+.cblock-nc { fill: #f2f3ef; stroke: #d8382a; stroke-width: 1.4; }
+.btn-collar { fill: #2c343c; }
+.btn-edge { stroke: rgba(0,0,0,.35); stroke-width: 1; }
+.btn-rim { stroke: rgba(255,255,255,.25); stroke-width: 1.2; }
+
+/* Контактор, тепловое реле */
+.arc-chute { fill: #3a434c; }
+.arc-rib { fill: #59636c; }
+.window { fill: #20272d; stroke: #11161a; }
+.armature { fill: #8b949c; }
+.armature-on { fill: #f2b705; }
+.armature-hl { stroke: #fff; stroke-width: .8; opacity: .5; }
+.coil-zone { fill: #e7e9e5; stroke: #c3c9c5; stroke-width: .6; }
+.coil-wind { stroke: #b87333; stroke-width: 2.2; }
+.coil-wind.is-on { stroke: #e08a3c; }
+.coil-wind.is-burnt { stroke: #2a2420; }
+.aux-face { fill: #eef0ec; stroke: #b9c0c6; stroke-width: .6; }
+.dial-ring { fill: #2c343c; }
+.dial-edge { stroke: #7f878d; stroke-width: .6; }
+.tick { stroke: #f4f6f8; stroke-width: 1.2; }
+.dial-ptr { stroke: #d8382a; stroke-width: 1.6; stroke-linecap: round; }
+.dial-slot { fill: #59636c; opacity: .55; }
+.btn-plate { fill: #e7e9e5; stroke: #b9c0c6; stroke-width: .6; }
+
+/* Двигатель */
+.motor-edge { stroke: #1c2c3b; stroke-width: 1; }
+.fin { fill: #9cbad6; opacity: .28; }
+.foot { fill: #2d3943; }
+.shaft-edge { stroke: #5d666e; stroke-width: .8; }
+.keyway { fill: #5d666e; }
+.nameplate { fill: #e9ebe6; stroke: #8b949c; stroke-width: .6; }
+.fan-blade { fill: #a9b8c6; stroke: #5b6e80; stroke-width: .6; }
+.fan-hub { fill: #f2b705; stroke: #8a6c00; }
+.grille { fill: none; stroke: #6f8fae; stroke-width: 1.6; opacity: .85; }
+.soot { fill: #1b1a19; opacity: .55; }
+.board-edge { stroke: #3a2516; stroke-width: 1; }
+.nut-edge { stroke: #6b4e0c; stroke-width: .8; }
+.pe-boss { fill: #f0ce26; stroke: #1f9a3e; stroke-width: 2; }
+.pe-sign { stroke: #1f6b32; stroke-width: 1.6; stroke-linecap: round; }
+.badge-ok { fill: #1d8748; }
+.badge-bad { fill: #c3352a; }
+.rot-arrow { fill: none; stroke: #f2b705; stroke-width: 3; stroke-linecap: round; }
 .arrowhead { fill: #f2b705; }
-.tbox { fill: #3d4a57; stroke: #222c35; }
-.tbox-pe { fill: #2aa457; opacity: .5; }
 .fan { transform-box: fill-box; transform-origin: center; }
-.spin-fwd { animation: spin .7s linear infinite; }
-.spin-rev { animation: spin .7s linear infinite reverse; }
-.hum { animation: hum .08s linear infinite alternate; }
+.spin-fwd { animation: spin .5s linear infinite; }
+.spin-rev { animation: spin .5s linear infinite reverse; }
+.hum { animation: hum .07s linear infinite alternate; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes hum { from { transform: translate(-.8px, 0); } to { transform: translate(.8px, .5px); } }
+@keyframes hum { from { transform: translate(-.7px, 0); } to { transform: translate(.7px, .5px); } }
 
 .zone { cursor: pointer; }
-.zone:hover > rect:first-child, .zone:hover > circle:first-child { filter: brightness(.97); }
+.zone:hover { filter: brightness(1.04); }
 
+/* Провода */
 .wire { cursor: pointer; }
 .w-hit { fill: none; stroke: transparent; stroke-width: 16; }
 .w-glow { fill: none; stroke: var(--live); stroke-opacity: .22; stroke-width: 11; stroke-linecap: round; }
-.w-sheath { fill: none; stroke: rgba(0,0,0,.45); stroke-width: 6.2; stroke-linecap: round; }
-.w-core { fill: none; stroke-width: 4.2; stroke-linecap: round; }
-.w-stripe { fill: none; stroke: #1f9a3e; stroke-width: 4.2; stroke-dasharray: 9 7; }
+.w-shadow { fill: none; stroke: rgba(0,0,0,.22); stroke-width: 6; stroke-linecap: round; transform: translate(1.5px, 3px); }
+.w-sheath { fill: none; stroke: rgba(0,0,0,.5); stroke-width: 6.2; stroke-linecap: round; }
+.w-core { fill: none; stroke-width: 4.4; stroke-linecap: round; }
+.w-stripe { fill: none; stroke: #1f9a3e; stroke-width: 4.4; stroke-dasharray: 9 7; }
+.w-hl { fill: none; stroke: #fff; stroke-opacity: .32; stroke-width: 1.1; stroke-linecap: round; transform: translate(-.6px, -1.1px); pointer-events: none; }
 .w-brown .w-core { stroke: #7a4a26; }
 .w-black .w-core { stroke: #23262a; }
 .w-grey .w-core { stroke: #8b9299; }
@@ -423,17 +484,19 @@ body[data-view="bench"] { overflow: hidden; }
 .rubber.w-brown { stroke: #7a4a26; } .rubber.w-black { stroke: #23262a; } .rubber.w-grey { stroke: #8b9299; }
 .rubber.w-blue { stroke: #1f5fd1; } .rubber.w-yg { stroke: #c9a80d; }
 
+/* Клеммы */
 .term { cursor: pointer; }
 .term-hit { fill: transparent; }
 .term:hover .term-hit { fill: rgba(242, 183, 5, .28); }
-.term-screw { fill: #dfe3e6; stroke: #5d666e; stroke-width: 1.2; }
-.term-slot { stroke: #5d666e; stroke-width: 1.4; }
-.term.is-live .term-screw { stroke: var(--live); stroke-width: 1.8; }
+.term-ring { fill: #1e2429; }
+.term-screw { stroke: #4f585f; stroke-width: .8; }
+.term-slot { stroke: #4a535a; stroke-width: 1.3; stroke-linecap: round; }
+.term.is-live .term-ring { fill: var(--live); }
 .term.is-sel .term-hit { fill: rgba(242, 183, 5, .55); }
-.term.is-sel .term-screw { stroke: #8a6400; stroke-width: 2.4; }
+.term.is-sel .term-ring { fill: #f2b705; }
 .term.is-probe .term-hit { fill: color-mix(in srgb, var(--live) 40%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
-  .spin-fwd, .spin-rev, .hum, .toast { animation: none; }
+  .spin-fwd, .spin-rev, .hum, .toast, .smoke { animation: none; }
   .panel, .lab-card, .toast { transition: none; }
 }

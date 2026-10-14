@@ -1,5 +1,5 @@
 /* Офлайн-кэш: приложение работает без интернета после первого открытия. */
-const CACHE = 'electro-trainer-v1';
+const CACHE = 'electro-trainer-v2';
 const FILES = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/components.js', './js/sim.js', './js/labs.js', './js/content.js', './js/check.js', './js/app.js',

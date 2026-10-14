@@ -165,9 +165,8 @@
     const svg = $('#board');
     if (!svg || !B.board) return;
     const st = B.sim ? B.sim.status : {};
-    let s = `<defs>
+    let s = `<defs>${ET.SVG_DEFS}
       <pattern id="perf" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="1.6" class="perf-dot"/></pattern>
-      <radialGradient id="glowg"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffd257" stop-opacity="0"/></radialGradient>
       <marker id="arrowhead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead"/></marker>
     </defs>`;
     s += `<g id="vp" transform="translate(${B.view.x} ${B.view.y}) scale(${B.view.k})">`;
@@ -188,8 +187,9 @@
       s += `<g class="wire w-${w.color} ${i === B.selWire ? 'is-sel' : ''} ${live ? 'is-live' : ''}" data-wire="${i}">`;
       s += `<path d="${p}" class="w-hit"/>`;
       if (live) s += `<path d="${p}" class="w-glow"/>`;
-      s += `<path d="${p}" class="w-sheath"/><path d="${p}" class="w-core"/>`;
+      s += `<path d="${p}" class="w-shadow"/><path d="${p}" class="w-sheath"/><path d="${p}" class="w-core"/>`;
       if (w.color === 'yg') s += `<path d="${p}" class="w-stripe"/>`;
+      s += `<path d="${p}" class="w-hl"/>`;
       s += `</g>`;
     });
     for (const c of B.board.comps) {
@@ -198,7 +198,7 @@
         const k = key(c.id, t.id);
         const x = c.x + t.x, y = c.y + t.y;
         const cls = [k === B.sel ? 'is-sel' : '', B.probe.includes(k) ? 'is-probe' : '', isLive(k) ? 'is-live' : ''].join(' ');
-        s += `<g class="term ${cls}" data-term="${esc(k)}"><circle cx="${x}" cy="${y}" r="13" class="term-hit"/><circle cx="${x}" cy="${y}" r="5" class="term-screw"/><path d="M${x - 3} ${y} h6" class="term-slot"/></g>`;
+        s += `<g class="term ${cls}" data-term="${esc(k)}"><circle cx="${x}" cy="${y}" r="13" class="term-hit"/><circle cx="${x}" cy="${y}" r="5.6" class="term-ring"/><circle cx="${x}" cy="${y}" r="4.6" fill="url(#g-screw)" class="term-screw"/><path d="M${x - 2.8} ${y - 2.8} l5.6 5.6 M${x + 2.8} ${y - 2.8} l-5.6 5.6" class="term-slot"/></g>`;
         if (!d.sources && t.label) {
           const ly = t.dir === 'up' ? y - 7 : y + 15;
           s += `<text x="${x + 7}" y="${ly}" class="t-term">${esc(t.label)}</text>`;
