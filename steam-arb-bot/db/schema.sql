@@ -14,6 +14,14 @@ CREATE TABLE IF NOT EXISTS price_snapshots (
 CREATE INDEX IF NOT EXISTS price_snapshots_lookup
   ON price_snapshots (market_hash_name, source, fetched_at DESC);
 
+-- item_nameid предмета (нужен для стакана заявок) не меняется — кэшируем навсегда
+CREATE TABLE IF NOT EXISTS item_nameids (
+  app_id           INTEGER NOT NULL,
+  market_hash_name TEXT    NOT NULL,
+  item_nameid      TEXT    NOT NULL,
+  PRIMARY KEY (app_id, market_hash_name)
+);
+
 CREATE TABLE IF NOT EXISTS opportunities (
   id               BIGSERIAL PRIMARY KEY,
   route            TEXT        NOT NULL,          -- steam->steam | dmarket->steam | steam->skinport ...

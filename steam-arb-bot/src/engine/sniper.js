@@ -12,13 +12,14 @@ const ITEM_COOLDOWN_MS = 30 * 60_000;
  * Перед покупкой цена ОБЯЗАТЕЛЬНО перепроверяется свежим запросом.
  */
 export class Sniper {
-  constructor({ config, db, notifier, steamMarket, venues, logger }) {
+  constructor({ config, db, notifier, steamMarket, venues, scanner, logger }) {
     this.cfg = config;
     this.s = config.strategy;
     this.db = db;
     this.notify = notifier;
     this.steam = steamMarket;
     this.venues = venues; // { dmarket: DMarket, ... } — только площадки с API покупки
+    this.scanner = scanner;
     this.log = logger.child({ mod: 'sniper' });
     this.budgetAlerted = false;
   }
@@ -39,6 +40,8 @@ export class Sniper {
       return;
     }
     if (opp.buyUsdCents > this.s.maxItemPriceCents) return skip('max_price');
+    const risk = this.#riskReason(opp);
+    if (risk) return skip(risk);
 
     // В dry run считаем cooldown по dry_run-записям, иначе алерты повторялись бы каждый цикл
     const cooldownStatuses = this.cfg.dryRun ? ['dry_run'] : ['pending', 'bought', 'unknown'];
@@ -53,6 +56,8 @@ export class Sniper {
 
     const fresh = await this.#revalidate(appId, opp);
     if (!fresh || fresh.roi < this.s.minRoi) return skip('stale');
+    const freshRisk = this.#riskReason(fresh);
+    if (freshRisk) return skip(freshRisk);
 
     const purchaseId = await this.db.beginPurchase({ appId, opp: fresh, status: this.cfg.dryRun ? 'dry_run' : 'pending' });
     if (!purchaseId) return skip('duplicate');
@@ -101,16 +106,24 @@ export class Sniper {
     }
   }
 
+  /**
+   * Отсекает сделки, прибыльные только «по медиане»:
+   *  - worst_case: продажа в лучшую заявку прямо сейчас даёт убыток больше MAX_WORST_LOSS_PCT
+   *    (или заявок нет вовсе, когда стакан известен);
+   *  - illiquid: по объёму продаж наш лот с конкурентами продаётся дольше MAX_DAYS_TO_SELL.
+   */
+  #riskReason(opp) {
+    if (opp.sellVenue && opp.sellVenue !== 'steam') return null;
+    if (opp.worstRoi != null && opp.worstRoi < -this.s.maxWorstLoss) return 'worst_case';
+    if (opp.worstRoi == null && opp.bookKnown) return 'worst_case';
+    if (opp.daysToSell != null && opp.daysToSell > this.s.maxDaysToSell) return 'illiquid';
+    return null;
+  }
+
   async #revalidate(appId, opp) {
-    const listings = await this.steam.getListings(appId, opp.name, { count: 5 });
-    const overview = await this.steam.priceOverview(appId, opp.name);
-    const external = [];
-    if (opp.buyVenue !== 'steam') {
-      const venue = this.venues[opp.buyVenue];
-      const [offer] = await venue.cheapestOffers(appId, opp.name, 1);
-      if (offer) external.push({ venue, priceCents: offer.priceCents, buyable: true, offer });
-    }
-    const all = findOpportunities({ appId, name: opp.name, q: { steam: { listings, overview }, external }, s: this.s });
+    const venues = opp.buyVenue === 'steam' ? [] : [opp.buyVenue];
+    const q = await this.scanner.deepQuote(appId, opp.name, { venues });
+    const all = findOpportunities({ appId, name: opp.name, q, s: this.s });
     return all.find((o) => o.route === opp.route) ?? null;
   }
 }

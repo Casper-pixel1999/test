@@ -168,3 +168,34 @@ test('getHistory: наши покупки (new_id) и продажи (факти
   assert.deepEqual(h.bought, [{ listingId: '500', newAssetId: 'A1' }]);
   assert.deepEqual(h.sold, [{ listingId: '600', assetId: 'A9', receivedCents: 252 }]);
 });
+
+test('searchPage: разбор результатов поиска Steam', async () => {
+  const { market, http } = marketWith([[/search\/render/, () => ({
+    success: true, total_count: 2345, results: [
+      { name: 'AK-47 | Redline (FT)', hash_name: 'AK-47 | Redline (Field-Tested)', sell_listings: 812, sell_price: 1234 },
+      { name: 'Broken', hash_name: 'Broken', sell_listings: 0, sell_price: 0 },
+    ] })]]);
+  const r = await market.searchPage(730, 200);
+  assert.equal(r.total, 2345);
+  assert.deepEqual(r.items, [{ name: 'AK-47 | Redline (Field-Tested)', priceUsdCents: 1234, listings: 812 }]);
+  assert.match(http.calls[0].url, /start=200&count=100.*appid=730&norender=1/);
+});
+
+test('item_nameid: извлекается со страницы предмета один раз и кэшируется', async () => {
+  const { market, http } = marketWith([
+    [/\/market\/listings\/730\/[^/]+$/, () => '<script>\n\tMarket_LoadOrderSpread( 176321160 );\n</script>'],
+    [/itemordershistogram/, () => ({
+      success: 1, highest_buy_order: '210', lowest_sell_order: '200',
+      sell_order_graph: [[2.0, 2, '2 по $2.00'], [2.95, 5, ''], [3.2, 15, '']],
+      buy_order_graph: [[2.1, 4, ''], [2.0, 10, '']],
+    })],
+  ]);
+  const b1 = await market.getOrderBook(730, 'Revolution Case');
+  await market.getOrderBook(730, 'Revolution Case');
+  assert.deepEqual(b1.asks, [{ priceCents: 200, qty: 2 }, { priceCents: 295, qty: 3 }, { priceCents: 320, qty: 10 }]);
+  assert.deepEqual(b1.bids, [{ priceCents: 210, qty: 4 }, { priceCents: 200, qty: 6 }]);
+  assert.equal(b1.highestBuyCents, 210);
+  assert.equal(http.calls.filter((c) => /\/market\/listings\//.test(c.url)).length, 1, 'страница предмета — только один раз');
+  assert.match(http.calls[1].url, /item_nameid=176321160/);
+  assert.equal(http.calls[0].as, 'text');
+});

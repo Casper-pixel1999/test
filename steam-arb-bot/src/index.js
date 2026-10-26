@@ -14,6 +14,7 @@ import { Skinport } from './markets/skinport.js';
 import { Buff163 } from './markets/buff163.js';
 import { DMarket } from './markets/dmarket.js';
 import { findOpportunities } from './engine/arbitrage.js';
+import { Scanner } from './engine/scanner.js';
 import { Sniper } from './engine/sniper.js';
 import { AutoSeller } from './engine/seller.js';
 
@@ -49,7 +50,7 @@ async function main() {
   const strategy = { ...cfg.strategy, walletFx, walletCurrency: currencyName(walletCurrency) };
   const runtime = { ...cfg, strategy };
   logger.info({ currency: strategy.walletCurrency, walletFx }, 'wallet currency');
-  const steam = new SteamMarket({ http, session, currency: walletCurrency, logger });
+  const steam = new SteamMarket({ http, session, currency: walletCurrency, logger, nameIdStore: db.nameIdStore() });
 
   // ── Сторонние площадки ──
   const v = cfg.venues;
@@ -57,7 +58,8 @@ async function main() {
   const buff = v.buff.enabled ? new Buff163({ http, fees: v.buff, sessionCookie: v.buff.sessionCookie, cnyUsdRate: v.buff.cnyUsdRate, logger }) : null;
   const dmarket = v.dmarket.enabled ? new DMarket({ http, fees: v.dmarket, publicKey: v.dmarket.publicKey, secretKey: v.dmarket.secretKey, logger }) : null;
 
-  const sniper = new Sniper({ config: runtime, db, notifier, steamMarket: steam, venues: { dmarket }, logger });
+  const scanner = new Scanner({ config: runtime, steamMarket: steam, skinport, buff, dmarket, db, logger });
+  const sniper = new Sniper({ config: runtime, db, notifier, steamMarket: steam, venues: { dmarket }, scanner, logger });
   const seller = new AutoSeller({ config: runtime, db, notifier, steamMarket: steam, logger });
 
   // До ПЕРВОЙ покупки запоминаем текущий инвентарь: эти предметы бот никогда не продаст
@@ -79,33 +81,18 @@ async function main() {
     }
   })();
 
-  // ── Цикл мониторинга и снайпинга ──
+  // ── Цикл мониторинга и снайпинга: широкий отбор -> глубокая проверка ──
   while (running) {
-    const skinportPrices = skinport ? await skinport.prices(appId).catch((err) => (logger.warn({ err: err.message }, 'skinport'), new Map())) : new Map();
+    const candidates = cfg.scan.enabled
+      ? await scanner.screen(appId).catch((err) => (logger.warn({ err: err.message }, 'screening failed'), []))
+      : [];
+    const names = [...new Set([...watchlist, ...candidates.map((c) => c.name)])];
 
-    for (const name of watchlist) {
+    for (const name of names) {
       if (!running) break;
       try {
-        const [overview, listings] = [await steam.priceOverview(appId, name), await steam.getListings(appId, name, { count: 5 })];
-        const external = [];
-
-        const sp = skinportPrices.get(name);
-        if (sp) external.push({ venue: skinport, priceCents: sp.priceCents, volume: sp.volume, buyable: false });
-        if (buff) {
-          const bp = await buff.price(appId, name);
-          if (bp) external.push({ venue: buff, priceCents: bp.priceCents, volume: bp.volume, buyable: false });
-        }
-        if (dmarket) {
-          const [offer] = await dmarket.cheapestOffers(appId, name, 1);
-          if (offer) external.push({ venue: dmarket, priceCents: offer.priceCents, buyable: true, offer });
-        }
-
-        if (overview?.lowestCents) {
-          await db.savePrices(`steam:${strategy.walletCurrency}`, appId, [{ name, priceCents: overview.lowestCents, medianCents: overview.medianCents, volume: overview.volume24h }]);
-        }
-        for (const e of external) await db.savePrices(e.venue.name, appId, [{ name, priceCents: e.priceCents, volume: e.volume }]);
-
-        const opps = findOpportunities({ appId, name, q: { steam: { overview, listings }, external }, s: strategy });
+        const q = await scanner.deepQuote(appId, name);
+        const opps = findOpportunities({ appId, name, q, s: strategy });
         // Берём только лучшую возможность по предмету — не покупаем один и тот же лот дважды
         if (opps[0]) await sniper.consider(appId, opps[0]);
       } catch (err) {

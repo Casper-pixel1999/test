@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { Repo } from '../src/db/repo.js';
 import { Sniper } from '../src/engine/sniper.js';
 import { AutoSeller } from '../src/engine/seller.js';
+import { Scanner } from '../src/engine/scanner.js';
 import { findOpportunities } from '../src/engine/arbitrage.js';
 import { buyerPaysFor, receivedFor } from '../src/steam/fees.js';
 import { strategy, collectingNotifier, silentLogger } from './helpers.js';
@@ -19,13 +20,14 @@ function fakeSteam() {
     overview: { lowestCents: 300, medianCents: 290, volume24h: 500 },
     listings: [{ listingId: 'L1', subtotalCents: 209, feeCents: 31, totalCents: 240 }],
     inventory: [], myListings: new Map(), history: { bought: [], sold: [] },
-    bought: [], sold: [], confirmed: [], nextListing: 1,
+    bought: [], sold: [], confirmed: [], nextListing: 1, book: null,
   };
   return {
     st,
     currencyName: 'USD',
     priceOverview: async () => st.overview,
     getListings: async () => st.listings,
+    getOrderBook: async () => st.book,
     buyListing: async (appId, name, l) => { st.bought.push(l.listingId); return { ok: true, raw: { wallet_info: { success: 1 } } }; },
     getInventory: async () => st.inventory,
     getHistory: async () => st.history,
@@ -41,7 +43,7 @@ function fakeSteam() {
 }
 
 const quote = (steam, name, external = []) =>
-  findOpportunities({ appId: 730, name, q: { steam: { overview: steam.st.overview, listings: steam.st.listings }, external }, s: strategy })[0];
+  findOpportunities({ appId: 730, name, q: { steam: { overview: steam.st.overview, listings: steam.st.listings, book: steam.st.book }, external }, s: strategy })[0];
 
 test('pipeline: покупка -> точный assetid -> лот по listingid -> продажа по истории', { skip: !url && 'DATABASE_URL_TEST не задан' }, async (t) => {
   const db = new Repo(url);
@@ -56,8 +58,9 @@ test('pipeline: покупка -> точный assetid -> лот по listingid 
     cheapestOffers: async () => [{ offerId: 'O1', priceCents: 150 }],
     buy: async (o) => { dmarketBuys.push(o.offerId); return { ok: true, raw: { status: 'TxSuccess' } }; },
   };
+  const scanner = new Scanner({ config: { scan: {}, strategy }, steamMarket: steam, dmarket, logger: silentLogger });
   const mk = (dryRun) => ({
-    sniper: new Sniper({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, venues: { dmarket }, logger: silentLogger }),
+    sniper: new Sniper({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, venues: { dmarket }, scanner, logger: silentLogger }),
     seller: new AutoSeller({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, logger: silentLogger }),
   });
 
@@ -156,4 +159,21 @@ test('pipeline: покупка -> точный assetid -> лот по listingid 
   await live.sniper.consider(730, quote(steam, 'Other'));
   assert.ok(!steam.st.bought.includes('L9'));
   assert.ok(notifier.messages.some((m) => m.includes('Дневной бюджет')));
+
+  // 13) Стакан: покупатели только по $1.00 при покупке за $2.00 -> worst_case, сделка отсекается
+  steam.st.overview = { lowestCents: 200, medianCents: 290, volume24h: 500 };
+  steam.st.listings = [{ listingId: 'T1', subtotalCents: 174, feeCents: 26, totalCents: 200 }];
+  steam.st.book = { asks: [{ priceCents: 200, qty: 1 }, { priceCents: 300, qty: 2 }], bids: [], highestBuyCents: 100 };
+  const thin = quote(steam, 'Thin');
+  assert.ok(thin.roi > strategy.minRoi && thin.worstRoi < -0.4);
+  await live.sniper.consider(730, thin);
+
+  // 14) Неликвид: 100 лотов в пределах +5% от цели при 5 продажах в сутки -> illiquid
+  steam.st.overview = { lowestCents: 200, medianCents: 290, volume24h: 15 };
+  steam.st.book = { asks: [{ priceCents: 200, qty: 1 }, { priceCents: 295, qty: 100 }], bids: [], highestBuyCents: 230 };
+  await live.sniper.consider(730, quote(steam, 'Slow'));
+
+  const { rows: risk } = await db.pool.query("SELECT market_hash_name, decision FROM opportunities WHERE market_hash_name IN ('Thin','Slow') ORDER BY id");
+  assert.deepEqual(risk.map((r) => [r.market_hash_name, r.decision]), [['Thin', 'skipped:worst_case'], ['Slow', 'skipped:illiquid']]);
+  assert.ok(!steam.st.bought.includes('T1'));
 });

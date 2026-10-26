@@ -66,6 +66,18 @@ export const config = Object.freeze({
     maxItemPriceCents: usdCents('MAX_ITEM_PRICE_USD', 50),
     dailyBudgetCents: usdCents('DAILY_BUDGET_USD', 200),
     minSellMargin: pct('MIN_SELL_MARGIN_PCT', 5),
+    // Максимальный убыток при немедленной продаже в лучшую заявку на покупку
+    maxWorstLoss: pct('MAX_WORST_LOSS_PCT', 10),
+    // Максимум дней на продажу: (наш лот + конкуренты в пределах +5%) / продажи за 24ч
+    maxDaysToSell: num('MAX_DAYS_TO_SELL', 3),
+  },
+
+  scan: {
+    enabled: bool('SCREEN_ENABLED', true),
+    pages: num('SCREEN_PAGES', 10),                 // x100 самых популярных предметов
+    minListings: num('SCREEN_MIN_LISTINGS', 20),
+    roiFactor: num('SCREEN_ROI_FACTOR', 0.5),       // кандидат, если грубый ROI >= MIN_ROI * factor
+    deepPerCycle: num('DEEP_CHECK_PER_CYCLE', 15),
   },
 
   telegram: {

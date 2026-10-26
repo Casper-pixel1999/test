@@ -14,8 +14,9 @@ export class SteamMarket {
    * @param {import('./session.js').SteamSession} o.session
    */
   /** currency — валюта КОШЕЛЬКА аккаунта (ECurrencyCode): Steam принимает покупку только в ней. */
-  constructor({ http, session, currency = 1, logger }) {
+  constructor({ http, session, currency = 1, logger, nameIdStore = memoryStore() }) {
     this.http = http;
+    this.nameIds = nameIdStore;
     this.session = session;
     this.currency = currency;
     this.currencyName = currencyName(currency);
@@ -61,6 +62,61 @@ export class SteamMarket {
         totalCents: l.converted_price + l.converted_fee,
       }))
       .sort((a, b) => a.totalCents - b.totalCents);
+  }
+
+  /**
+   * Широкий поиск: до 100 предметов за запрос, отсортированы по популярности.
+   * sell_price — минимальная цена покупателя в центах USD (поиск не учитывает валюту кошелька),
+   * поэтому результаты годятся только для предварительного отбора.
+   */
+  async searchPage(appId, start = 0, count = 100) {
+    const url = `${BASE}/market/search/render/?query=&start=${start}&count=${count}&search_descriptions=0`
+      + `&sort_column=popular&sort_dir=desc&appid=${appId}&norender=1`;
+    const r = await this.http.request(url);
+    if (!r?.success) return { items: [], total: 0 };
+    return {
+      total: r.total_count ?? 0,
+      items: (r.results ?? []).map((it) => ({
+        name: it.hash_name ?? it.asset_description?.market_hash_name ?? it.name,
+        priceUsdCents: it.sell_price,
+        listings: it.sell_listings ?? 0,
+      })).filter((it) => it.name && it.priceUsdCents > 0),
+    };
+  }
+
+  /**
+   * item_nameid нужен для стакана. Он не меняется никогда, поэтому страница предмета
+   * запрашивается один раз, а id кэшируется (в БД — через nameIdStore).
+   */
+  async getItemNameId(appId, name) {
+    const cached = await this.nameIds.get(appId, name);
+    if (cached) return cached;
+    const html = await this.http.request(`${BASE}/market/listings/${appId}/${encodeURIComponent(name)}`, { as: 'text' });
+    const m = html.match(/Market_LoadOrderSpread\(\s*(\d+)\s*\)/);
+    if (!m) throw new Error(`item_nameid не найден для ${name}`);
+    await this.nameIds.set(appId, name, m[1]);
+    return m[1];
+  }
+
+  /**
+   * Стакан заявок (цены — то, что платит покупатель, в валюте кошелька).
+   * Графики Steam кумулятивные: [[цена, накопленное кол-во, подпись], ...] -> переводим в уровни.
+   */
+  async getOrderBook(appId, name) {
+    const id = await this.getItemNameId(appId, name);
+    const r = await this.http.request(`${BASE}/market/itemordershistogram?country=US&language=english`
+      + `&currency=${this.currency}&item_nameid=${id}&two_factor=0&norender=1`);
+    if (!r?.success) return null;
+    const levels = (graph = []) => graph.map(([price, cum], i) => ({
+      priceCents: Math.round(price * 100),
+      qty: cum - (i > 0 ? graph[i - 1][1] : 0),
+    })).filter((l) => l.qty > 0);
+    return {
+      asks: levels(r.sell_order_graph).sort((a, b) => a.priceCents - b.priceCents),
+      bids: levels(r.buy_order_graph).sort((a, b) => b.priceCents - a.priceCents),
+      highestBuyCents: r.highest_buy_order ? Number(r.highest_buy_order) : null,
+      lowestSellCents: r.lowest_sell_order ? Number(r.lowest_sell_order) : null,
+    };
   }
 
   /** Покупка конкретного лота. Авторизованный запрос -> sticky IP аккаунта. */
@@ -179,4 +235,12 @@ export class SteamMarket {
     await this.session.acceptConfirmation(conf);
     return true;
   }
+}
+
+function memoryStore() {
+  const m = new Map();
+  return {
+    get: async (appId, name) => m.get(`${appId}|${name}`) ?? null,
+    set: async (appId, name, id) => { m.set(`${appId}|${name}`, id); },
+  };
 }

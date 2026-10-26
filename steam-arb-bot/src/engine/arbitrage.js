@@ -67,33 +67,81 @@ export function competitiveSteamPrice({ lowestCents, medianCents }) {
   return undercut ?? medianCents ?? null;
 }
 
+/** Сколько продавцов в пределах этой полосы над нашей ценой считаем прямыми конкурентами. */
+const COMPETING_BAND = 0.05;
+
+/**
+ * Оценка выхода из позиции на ТП Steam по стакану.
+ *  - nextAsk: лучший лот ПОСЛЕ того, как мы выкупили самый дешёвый (removeCheapest) — иначе
+ *    «рыночной» ценой оказался бы наш же покупаемый лот;
+ *  - target: на 1 цент ниже nextAsk, не выше медианы 24ч и не ниже лучшей заявки на покупку
+ *    (ниже заявки выставлять бессмысленно — по ней можно продать сразу);
+ *  - worst: лучшая заявка на покупку — цена гарантированного выхода «прямо сейчас»;
+ *  - daysToSell: (наш лот + конкуренты в пределах +5% от target) / продажи за 24ч.
+ *
+ * book: { asks: [{priceCents, qty}], bids: [...], highestBuyCents } — из itemordershistogram.
+ * Без стакана используются отдельные лоты (listings) — тогда worst неизвестен.
+ */
+export function estimateSteamExit({ book, overview, listings = [], removeCheapest = false }) {
+  let asks = (book?.asks?.length ? book.asks : listings.map((l) => ({ priceCents: l.totalCents, qty: 1 })))
+    .map((a) => ({ ...a }))
+    .sort((a, b) => a.priceCents - b.priceCents);
+  if (removeCheapest && asks.length) {
+    asks[0].qty -= 1;
+    if (asks[0].qty <= 0) asks = asks.slice(1);
+  }
+  // Без стакана и без второго лота следующую цену берём из priceoverview, только если она выше покупки
+  const fallbackAsk = !removeCheapest || (overview?.lowestCents ?? 0) > (listings[0]?.totalCents ?? Infinity)
+    ? overview?.lowestCents ?? null : null;
+  const nextAskCents = asks[0]?.priceCents ?? fallbackAsk;
+  const highestBuyCents = book?.highestBuyCents ?? null;
+
+  let targetCents = competitiveSteamPrice({ lowestCents: nextAskCents, medianCents: overview?.medianCents });
+  if (targetCents != null && highestBuyCents != null) targetCents = Math.max(targetCents, highestBuyCents);
+
+  const competing = targetCents == null ? 0
+    : asks.filter((a) => a.priceCents <= targetCents * (1 + COMPETING_BAND)).reduce((sum, a) => sum + a.qty, 0);
+  const daysToSell = overview?.volume24h > 0 ? (competing + 1) / overview.volume24h : Infinity;
+
+  return { targetCents, worstCents: highestBuyCents, nextAskCents, daysToSell, competing };
+}
+
 /**
  * Перебирает все маршруты для одного предмета и возвращает возможности, отсортированные по ROI.
- * @param {object} q  котировки: { steam: {listings, overview}, external: [{venue, priceCents, volume, buyable}] }
+ * Для маршрутов с продажей на Steam добавляет worstRoi (продажа в лучшую заявку прямо сейчас)
+ * и daysToSell — по ним снайпер отсекает сделки, «прибыльные» только по медиане.
+ * @param {object} q  котировки: { steam: {listings, overview, book?}, external: [{venue, priceCents, volume, buyable}] }
  */
 export function findOpportunities({ appId, name, q, s }) {
   const out = [];
-  const { overview, listings } = q.steam;
+  const { overview, listings, book } = q.steam;
   if (!overview || overview.volume24h < s.minSteamVolume24h) return out; // неликвид не трогаем
 
-  const sellOnSteam = competitiveSteamPrice(overview);
   const cheapest = listings[0];
+  const withExit = (routeFn, args, exit) => {
+    const main = routeFn({ ...args, sellBuyerPaysCents: exit.targetCents });
+    const worstRoi = exit.worstCents ? routeFn({ ...args, sellBuyerPaysCents: exit.worstCents }).roi : null;
+    return { ...main, worstRoi, daysToSell: exit.daysToSell, highestBuyCents: exit.worstCents, bookKnown: Boolean(book) };
+  };
 
-  if (cheapest && sellOnSteam) {
-    out.push({ ...steamToSteam({ appId, name, buyTotalCents: cheapest.totalCents, sellBuyerPaysCents: sellOnSteam, s }),
+  // Купили самый дешёвый лот -> конкурируем со следующим
+  const afterBuy = estimateSteamExit({ book, overview, listings, removeCheapest: true });
+  if (cheapest && afterBuy.targetCents) {
+    out.push({ ...withExit(steamToSteam, { appId, name, buyTotalCents: cheapest.totalCents, s }, afterBuy),
       buyVenue: 'steam', listing: cheapest });
   }
 
+  const asIs = estimateSteamExit({ book, overview, listings });
   for (const ext of q.external) {
     if (!ext?.priceCents) continue;
-    if (ext.buyable && sellOnSteam) {
-      out.push({ ...externalToSteam({ appId, name, venue: ext.venue, buyPriceCents: ext.priceCents, sellBuyerPaysCents: sellOnSteam, s }),
+    if (ext.buyable && asIs.targetCents) {
+      out.push({ ...withExit(externalToSteam, { appId, name, venue: ext.venue, buyPriceCents: ext.priceCents, s }, asIs),
         buyVenue: ext.venue.name, offer: ext.offer });
     }
     if (cheapest) {
-      // продаём на 1 цент дешевле текущего минимума площадки
+      // продаём на 1 цент дешевле текущего минимума площадки; стакана площадки у нас нет -> worstRoi неизвестен
       out.push({ ...steamToExternal({ name, venue: ext.venue, buyTotalCents: cheapest.totalCents, sellPriceCents: ext.priceCents - 1, s }),
-        buyVenue: 'steam', listing: cheapest, sellVenue: ext.venue.name });
+        worstRoi: null, daysToSell: null, buyVenue: 'steam', listing: cheapest, sellVenue: ext.venue.name });
     }
   }
   return out.sort((a, b) => b.roi - a.roi);

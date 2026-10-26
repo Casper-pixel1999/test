@@ -1,6 +1,6 @@
 import { fmtMoney, fmtUsd } from '../core/utils.js';
 import { buyerPaysFor } from '../steam/fees.js';
-import { competitiveSteamPrice, walletToCash } from './arbitrage.js';
+import { estimateSteamExit, walletToCash } from './arbitrage.js';
 
 const GONE_AFTER_MS = 60 * 60_000;
 
@@ -74,7 +74,9 @@ export class AutoSeller {
 
       const overview = await this.market.priceOverview(appId, pos.market_hash_name);
       const listings = await this.market.getListings(appId, pos.market_hash_name, { count: 5 });
-      const target = competitiveSteamPrice({ lowestCents: listings[0]?.totalCents, medianCents: overview?.medianCents });
+      const book = await this.market.getOrderBook(appId, pos.market_hash_name).catch(() => null);
+      // ниже лучшего лота на 1 цент, не выше медианы и не ниже лучшей заявки на покупку
+      const { targetCents: target } = estimateSteamExit({ book, overview, listings });
 
       // Пол: себестоимость (реальные USD -> единицы кошелька) + маржа ПОСЛЕ комиссий Steam
       const minReceived = Math.ceil((pos.cost_cash_cents / (this.s.walletFx * this.s.walletValue)) * (1 + this.s.minSellMargin));

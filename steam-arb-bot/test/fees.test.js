@@ -71,3 +71,50 @@ test('рублёвый кошелёк: Steam-суммы переводятся �
   const e = externalToSteam({ appId: 730, name: 'a', venue, buyPriceCents: 100, sellBuyerPaysCents: 11_500, s: rub });
   assert.equal(e.revenueCashCents, Math.round(10_000 * 0.011 * 0.75));
 });
+
+// ─── Стакан и оценка выхода ──────────────────────────────────────────────
+import { estimateSteamExit, findOpportunities } from '../src/engine/arbitrage.js';
+
+const sOpp = { ...s, minRoi: 0.1, minSteamVolume24h: 10 };
+
+test('регрессия: после покупки самого дешёвого лота цель — следующий лот, а не наш же', () => {
+  const listings = [{ totalCents: 200 }, { totalCents: 295 }, { totalCents: 300 }];
+  const overview = { lowestCents: 200, medianCents: 290, volume24h: 100 }; // lowest = покупаемый лот
+  const exit = estimateSteamExit({ overview, listings, removeCheapest: true });
+  assert.equal(exit.nextAskCents, 295);
+  assert.equal(exit.targetCents, 290);
+  assert.equal(exit.worstCents, null);
+
+  // единственный лот и priceoverview указывает на него же -> рыночной цены нет, кроме медианы
+  const alone = estimateSteamExit({ overview, listings: [{ totalCents: 200 }], removeCheapest: true });
+  assert.equal(alone.nextAskCents, null);
+  assert.equal(alone.targetCents, 290);
+});
+
+test('стакан: несколько лотов по минимальной цене, заявки, конкуренты, дни продажи', () => {
+  const book = { asks: [{ priceCents: 200, qty: 2 }, { priceCents: 295, qty: 3 }, { priceCents: 320, qty: 10 }], highestBuyCents: 210 };
+  const overview = { lowestCents: 200, medianCents: 290, volume24h: 4 };
+  const e = estimateSteamExit({ book, overview, removeCheapest: true });
+  assert.equal(e.nextAskCents, 200, 'второй лот по 2.00 остаётся — конкурируем с ним');
+  assert.equal(e.targetCents, 210, 'цель не ниже лучшей заявки');
+  assert.equal(e.competing, 1);
+  assert.equal(e.daysToSell, 0.5);
+
+  const book2 = { asks: [{ priceCents: 200, qty: 1 }, { priceCents: 295, qty: 3 }, { priceCents: 300, qty: 10 }], highestBuyCents: 210 };
+  const e2 = estimateSteamExit({ book: book2, overview, removeCheapest: true });
+  assert.equal(e2.targetCents, 290);
+  assert.equal(e2.competing, 13); // 295x3 и 300x10 в пределах +5% от 2.90
+  assert.equal(e2.daysToSell, 14 / 4);
+});
+
+test('«прибыль по медиане»: покупатели только по $2.10 -> worstRoi отрицательный', () => {
+  const book = { asks: [{ priceCents: 200, qty: 1 }, { priceCents: 300, qty: 5 }], highestBuyCents: 210 };
+  const q = { steam: { overview: { lowestCents: 200, medianCents: 290, volume24h: 50 }, listings: [{ listingId: 'L', totalCents: 200 }], book }, external: [] };
+  const [o] = findOpportunities({ appId: 730, name: 'x', q, s: sOpp });
+  assert.equal(o.route, 'steam->steam');
+  assert.equal(o.sellPriceCents, 290);
+  assert.ok(o.roi > 0.25);
+  assert.equal(o.highestBuyCents, 210);
+  assert.ok(Math.abs(o.worstRoi - (receivedFor(210, 730) - 200) / 200) < 1e-9); // (183-200)/200 = -8.5%
+  assert.equal(o.bookKnown, true);
+});

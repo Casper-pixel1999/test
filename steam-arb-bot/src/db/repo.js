@@ -29,6 +29,17 @@ export class Repo {
     );
   }
 
+  /** Хранилище item_nameid для SteamMarket. */
+  nameIdStore() {
+    return {
+      get: async (appId, name) => (await this.pool.query(
+        'SELECT item_nameid FROM item_nameids WHERE app_id=$1 AND market_hash_name=$2', [appId, name])).rows[0]?.item_nameid ?? null,
+      set: async (appId, name, id) => { await this.pool.query(
+        `INSERT INTO item_nameids (app_id, market_hash_name, item_nameid) VALUES ($1,$2,$3)
+         ON CONFLICT (app_id, market_hash_name) DO UPDATE SET item_nameid = EXCLUDED.item_nameid`, [appId, name, id]); },
+    };
+  }
+
   // ─── Покупки ─────────────────────────────────────────────────────────
 
   /**

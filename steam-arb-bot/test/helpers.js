@@ -17,7 +17,7 @@ export function fakeHttp(routes) {
 
 export const strategy = {
   minRoi: 0.1, walletValue: 1, walletFx: 1, walletCurrency: 'USD', holdRisk: 0, minSteamVolume24h: 10,
-  maxItemPriceCents: 5000, dailyBudgetCents: 1000, minSellMargin: 0.05,
+  maxItemPriceCents: 5000, dailyBudgetCents: 1000, minSellMargin: 0.05, maxWorstLoss: 0.1, maxDaysToSell: 3,
 };
 
 export function collectingNotifier() {
