@@ -1,0 +1,26 @@
+{
+  "name": "steam-arb-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Арбитражный трейд-бот для CS2 / Rust / Dota 2: Steam Community Market + сторонние площадки",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "db:init": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "encrypt-mafile": "node scripts/encrypt-mafile.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0",
+    "pino": "^9.4.0",
+    "steam-totp": "^2.1.2",
+    "steam-tradeoffer-manager": "^2.11.6",
+    "steam-user": "^5.2.0",
+    "steamcommunity": "^3.48.3",
+    "tweetnacl": "^1.0.3",
+    "undici": "^6.19.8"
+  }
+}
