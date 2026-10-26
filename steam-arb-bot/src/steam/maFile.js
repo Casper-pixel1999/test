@@ -4,6 +4,15 @@ import { decrypt, isEncrypted } from '../core/secrets.js';
 const B64 = /^[A-Za-z0-9+/]+=*$/;
 
 /**
+ * SDA пишет SteamID голым числом (> 2^53), и JSON.parse его округляет —
+ * поэтому достаём значение из исходного текста.
+ */
+function extractSteamId(rawJson) {
+  const m = rawJson.match(/"SteamID"\s*:\s*"?(\d{17})"?/);
+  return m ? m[1] : null;
+}
+
+/**
  * Загружает maFile (формат Steam Desktop Authenticator / steamguard-cli).
  * Поддерживает как наш зашифрованный формат, так и plaintext (с предупреждением).
  *
@@ -33,6 +42,6 @@ export async function loadMaFile(path, passphrase, logger) {
     sharedSecret: ma.shared_secret,     // -> 5-символьные коды Steam Guard (логин)
     identitySecret: ma.identity_secret, // -> подписи мобильных подтверждений (трейды, лоты на ТП)
     deviceId: ma.device_id,
-    steamId: ma.Session?.SteamID ? String(ma.Session.SteamID) : null,
+    steamId: extractSteamId(json),
   };
 }

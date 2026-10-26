@@ -46,8 +46,13 @@ export class SteamSession extends EventEmitter {
 
   /** Часы сервера могут не совпадать с нашими — коды TOTP считаем со смещением. */
   async syncTime() {
-    const [offset] = await promisify((cb) => SteamTotp.getTimeOffset((err, off, lat) => cb(err, [off, lat])))();
-    this.timeOffset = offset;
+    try {
+      const [offset] = await promisify((cb) => SteamTotp.getTimeOffset((err, off, lat) => cb(err, [off, lat])))();
+      this.timeOffset = offset;
+    } catch (err) {
+      // Не фатально: при часах, синхронизированных по NTP, смещение ~0
+      this.log.warn({ err: err.message }, 'не удалось синхронизировать время со Steam, используем локальные часы');
+    }
   }
 
   authCode() {

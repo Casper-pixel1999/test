@@ -85,7 +85,7 @@ cp .env.example .env              # заполнить
 cp watchlist.example.json watchlist.json
 npm run encrypt-mafile -- ~/path/account.maFile ./data/account.maFile.enc
 npm run db:init
-npm test
+npm test                          # сквозной тест с БД: DATABASE_URL_TEST=postgres://... npm test
 npm start
 ```
 
