@@ -1,9 +1,11 @@
-import { parseUsdToCents } from '../core/utils.js';
+import { currencyName, parsePriceToCents } from '../core/utils.js';
 import { receivedFor } from './fees.js';
 
 const BASE = 'https://steamcommunity.com';
 // Тип мобильного подтверждения "лот на торговой площадке" в steamcommunity
 const CONF_TYPE_MARKET_LISTING = 3;
+// Типы событий истории ТП (/market/myhistory)
+const HISTORY_EVENT = { ListingCreated: 1, ListingCancelled: 2, ListingSold: 3, ListingPurchased: 4 };
 
 export class SteamMarket {
   /**
@@ -11,10 +13,12 @@ export class SteamMarket {
    * @param {import('../core/http.js').HttpClient} o.http
    * @param {import('./session.js').SteamSession} o.session
    */
+  /** currency — валюта КОШЕЛЬКА аккаунта (ECurrencyCode): Steam принимает покупку только в ней. */
   constructor({ http, session, currency = 1, logger }) {
     this.http = http;
     this.session = session;
     this.currency = currency;
+    this.currencyName = currencyName(currency);
     this.log = logger.child({ mod: 'steam-market' });
   }
 
@@ -33,8 +37,8 @@ export class SteamMarket {
     const r = await this.http.request(url);
     if (!r?.success) return null;
     return {
-      lowestCents: parseUsdToCents(r.lowest_price),
-      medianCents: parseUsdToCents(r.median_price),
+      lowestCents: parsePriceToCents(r.lowest_price),
+      medianCents: parsePriceToCents(r.median_price),
       volume24h: r.volume ? Number(String(r.volume).replace(/,/g, '')) : 0,
     };
   }
@@ -127,34 +131,52 @@ export class SteamMarket {
   }
 
   /**
-   * Подтверждаем только лоты ТП, созданные ботом за последние 10 минут и совпадающие по названию.
-   * Трейд-подтверждения не трогаем вообще — это главный вектор угона предметов.
+   * Наши лоты на ТП: assetid -> listingid (активные, ждущие подтверждения и в холде).
+   * Формат ответа недокументирован: assetid берём и из словаря assets, и из массивов лотов.
    */
-  async confirmOwnListings(names) {
-    const freshAfter = Date.now() - 10 * 60_000;
-    const confs = await this.session.getConfirmations();
-    let confirmed = 0;
-    for (const c of confs) {
-      if (c.type !== CONF_TYPE_MARKET_LISTING) continue;
-      if (c.timestamp && c.timestamp.getTime() < freshAfter) continue;
-      const text = `${c.title} ${c.sending}`; // title = "<type_name> - <headline>"
-      if (!names.some((n) => text.includes(n))) continue;
-      await this.session.acceptConfirmation(c);
-      confirmed++;
-    }
-    return confirmed;
-  }
-
-  /** assetid предметов, которые сейчас выставлены (или ждут подтверждения) на ТП. */
-  async getListedAssetIds(appId, contextId = 2) {
+  async getMyListings(appId, contextId = 2) {
     const r = await this.http.request(`${BASE}/market/mylistings/render/?start=0&count=100&norender=1`, {
       sticky: true, headers: { cookie: this.session.cookieHeader() },
     });
-    // Формат ответа недокументирован: берём assetid и из словаря assets, и из массивов лотов
-    const ids = new Set(Object.keys(r?.assets?.[appId]?.[contextId] ?? {}));
+    const byAsset = new Map(Object.keys(r?.assets?.[appId]?.[contextId] ?? {}).map((id) => [id, null]));
     for (const l of [...(r?.listings ?? []), ...(r?.listings_to_confirm ?? []), ...(r?.listings_on_hold ?? [])]) {
-      if (l?.asset?.id) ids.add(String(l.asset.id));
+      if (l?.asset?.id) byAsset.set(String(l.asset.id), l.listingid ? String(l.listingid) : null);
     }
-    return ids;
+    return byAsset;
+  }
+
+  /**
+   * История ТП: наши покупки (listingid -> новый assetid в нашем инвентаре)
+   * и наши продажи (listingid/assetid -> сколько фактически получили).
+   */
+  async getHistory({ count = 100 } = {}) {
+    const r = await this.http.request(`${BASE}/market/myhistory/render/?query=&start=0&count=${count}&norender=1`, {
+      sticky: true, headers: { cookie: this.session.cookieHeader() },
+    });
+    const purchases = r?.purchases ?? {};
+    const bought = [];
+    const sold = [];
+    for (const e of r?.events ?? []) {
+      const p = purchases[`${e.listingid}_${e.purchaseid}`];
+      if (!p) continue;
+      if (e.event_type === HISTORY_EVENT.ListingPurchased) {
+        bought.push({ listingId: String(e.listingid), newAssetId: p.asset?.new_id ? String(p.asset.new_id) : null });
+      } else if (e.event_type === HISTORY_EVENT.ListingSold) {
+        sold.push({ listingId: String(e.listingid), assetId: p.asset?.id ? String(p.asset.id) : null, receivedCents: Number(p.received_amount) });
+      }
+    }
+    return { bought, sold };
+  }
+
+  /**
+   * Подтверждает РОВНО один лот: подтверждение типа "лот на ТП", чей creator == listingid.
+   * Трейды и любые другие подтверждения не трогаются — главный вектор угона предметов.
+   */
+  async confirmListing(listingId) {
+    const confs = await this.session.getConfirmations();
+    const conf = confs.find((c) => c.type === CONF_TYPE_MARKET_LISTING && String(c.creator) === String(listingId));
+    if (!conf) return false;
+    await this.session.acceptConfirmation(conf);
+    return true;
   }
 }

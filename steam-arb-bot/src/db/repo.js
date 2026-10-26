@@ -9,6 +9,8 @@ export class Repo {
     await this.pool.end();
   }
 
+  // ─── Цены и возможности ──────────────────────────────────────────────
+
   async savePrices(source, appId, rows) {
     if (!rows.length) return;
     await this.pool.query(
@@ -27,41 +29,98 @@ export class Repo {
     );
   }
 
-  async recordPurchase({ appId, opp, status, raw = null }) {
-    const externalId = String(opp.listing?.listingId ?? opp.offer?.offerId ?? `${Date.now()}`);
+  // ─── Покупки ─────────────────────────────────────────────────────────
+
+  /**
+   * Создаёт запись ДО запроса на покупку. Возвращает id или null, если этот лот уже покупался
+   * (UNIQUE venue+external_id) — защита от двойной покупки.
+   */
+  async beginPurchase({ appId, opp, status }) {
+    const externalId = String(opp.listing?.listingId ?? opp.offer?.offerId);
     const { rows } = await this.pool.query(
-      `INSERT INTO purchases (venue, external_id, app_id, market_hash_name, cost_cents, cost_cash_cents, status, raw)
+      `INSERT INTO purchases (venue, external_id, app_id, market_hash_name, cost_cents, currency, cost_cash_cents, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (venue, external_id) DO UPDATE SET status = EXCLUDED.status, raw = EXCLUDED.raw
+       ON CONFLICT (venue, external_id) DO NOTHING
        RETURNING id`,
-      [opp.buyVenue, `${status === 'dry_run' ? 'dry-' : ''}${externalId}`, appId, opp.name, opp.buyPriceCents, opp.costCashCents, status, raw],
+      [opp.buyVenue, `${status === 'dry_run' ? 'dry-' : ''}${externalId}`, appId, opp.name,
+        opp.buyPriceCents, opp.buyCurrency, opp.costCashCents, status],
     );
-    return rows[0].id;
+    return rows[0]?.id ?? null;
   }
 
+  /** Атомарно: статус покупки + (при успехе) позиция в инвентаре на продажу. */
+  async completePurchase(id, status, raw = null) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [p] } = await client.query(
+        `UPDATE purchases SET status=$2, raw=$3 WHERE id=$1 RETURNING app_id, market_hash_name`, [id, status, raw]);
+      if (status === 'bought') {
+        await client.query(
+          `INSERT INTO inventory (purchase_id, app_id, market_hash_name, status) VALUES ($1,$2,$3,'awaiting')`,
+          [id, p.app_id, p.market_hash_name]);
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async pendingPurchases() {
+    const { rows } = await this.pool.query(
+      `SELECT id, venue, external_id, market_hash_name FROM purchases WHERE status='pending' ORDER BY id`);
+    return rows;
+  }
+
+  /** Cooldown хранится в БД -> переживает перезапуск бота. */
+  async recentPurchaseExists(name, statuses, ms) {
+    const { rows } = await this.pool.query(
+      `SELECT 1 FROM purchases WHERE market_hash_name=$1 AND status = ANY($2)
+         AND created_at > now() - make_interval(secs => $3) LIMIT 1`,
+      [name, statuses, ms / 1000]);
+    return rows.length > 0;
+  }
+
+  /** pending тоже считается: деньги, возможно, уже списаны. */
   async spentTodayCents() {
     const { rows } = await this.pool.query(
       `SELECT coalesce(sum(cost_cash_cents), 0)::int AS s FROM purchases
-       WHERE status = 'bought' AND created_at >= date_trunc('day', now())`,
-    );
+       WHERE status IN ('bought','pending','unknown') AND created_at >= date_trunc('day', now())`);
     return rows[0].s;
   }
 
-  async addAwaitingInventory({ purchaseId, appId, name }) {
+  // ─── Инвентарь ───────────────────────────────────────────────────────
+
+  /** Запоминает все assetid инвентаря; first_seen_at ставится только при первом появлении. */
+  async upsertSeenAssets(appId, assets) {
+    if (!assets.length) return;
     await this.pool.query(
-      `INSERT INTO inventory (purchase_id, app_id, market_hash_name, status) VALUES ($1,$2,$3,'awaiting')`,
-      [purchaseId, appId, name],
-    );
+      `INSERT INTO seen_assets (asset_id, app_id, market_hash_name)
+       SELECT a, $1, n FROM unnest($2::text[], $3::text[]) AS t(a, n)
+       ON CONFLICT (asset_id) DO NOTHING`,
+      [appId, assets.map((a) => a.assetId), assets.map((a) => a.name ?? null)]);
   }
 
-  async awaitingSale(appId) {
+  /** Позиции, для которых ещё не найден assetid. */
+  async awaitingWithoutAsset(appId) {
     const { rows } = await this.pool.query(
-      `SELECT i.id, i.market_hash_name, p.cost_cash_cents
+      `SELECT i.id, i.market_hash_name, p.venue, p.external_id, p.created_at AS purchased_at
        FROM inventory i JOIN purchases p ON p.id = i.purchase_id
-       WHERE i.app_id = $1 AND i.status = 'awaiting' ORDER BY i.id`,
-      [appId],
-    );
+       WHERE i.app_id=$1 AND i.status='awaiting' AND i.asset_id IS NULL ORDER BY i.id`, [appId]);
     return rows;
+  }
+
+  /** Кандидаты для позиции: такое же название, впервые увидены ПОСЛЕ покупки и никому не назначены. */
+  async newAssetsSince(appId, name, since) {
+    const { rows } = await this.pool.query(
+      `SELECT s.asset_id FROM seen_assets s
+       WHERE s.app_id=$1 AND s.market_hash_name=$2 AND s.first_seen_at > $3
+         AND NOT EXISTS (SELECT 1 FROM inventory i WHERE i.asset_id = s.asset_id)
+       ORDER BY s.first_seen_at, s.asset_id`, [appId, name, since]);
+    return rows.map((r) => r.asset_id);
   }
 
   async knownAssetIds() {
@@ -69,23 +128,43 @@ export class Repo {
     return rows.map((r) => r.asset_id);
   }
 
-  async markListed(id, { assetId, priceCents, receivedCents }) {
+  async assignAsset(id, assetId) {
+    await this.pool.query(`UPDATE inventory SET asset_id=$2, updated_at=now() WHERE id=$1`, [id, assetId]);
+  }
+
+  async readyToList(appId) {
+    const { rows } = await this.pool.query(
+      `SELECT i.id, i.market_hash_name, i.asset_id, p.cost_cash_cents
+       FROM inventory i JOIN purchases p ON p.id = i.purchase_id
+       WHERE i.app_id=$1 AND i.status='awaiting' AND i.asset_id IS NOT NULL ORDER BY i.id`, [appId]);
+    return rows;
+  }
+
+  async markListed(id, { priceCents, receivedCents, listingId }) {
     await this.pool.query(
-      `UPDATE inventory SET status='listed', asset_id=$2, list_price_cents=$3, received_cents=$4,
+      `UPDATE inventory SET status='listed', list_price_cents=$2, received_cents=$3, listing_id=$4,
          listed_at=now(), updated_at=now() WHERE id=$1`,
-      [id, assetId, priceCents, receivedCents],
-    );
+      [id, priceCents, receivedCents, listingId ?? null]);
+  }
+
+  async setListingId(id, listingId) {
+    await this.pool.query(`UPDATE inventory SET listing_id=$2, updated_at=now() WHERE id=$1`, [id, listingId]);
   }
 
   async listedPositions(appId) {
     const { rows } = await this.pool.query(
-      `SELECT id, asset_id, market_hash_name, received_cents FROM inventory WHERE app_id=$1 AND status='listed'`,
-      [appId],
-    );
+      `SELECT id, asset_id, listing_id, market_hash_name, received_cents, listed_at
+       FROM inventory WHERE app_id=$1 AND status='listed' ORDER BY id`, [appId]);
     return rows;
   }
 
-  async markSold(id) {
-    await this.pool.query(`UPDATE inventory SET status='sold', sold_at=now(), updated_at=now() WHERE id=$1`, [id]);
+  async markSold(id, { receivedCents, cashCents }) {
+    await this.pool.query(
+      `UPDATE inventory SET status='sold', sold_received_cents=$2, sold_cash_cents=$3, sold_at=now(), updated_at=now()
+       WHERE id=$1`, [id, receivedCents, cashCents]);
+  }
+
+  async setStatus(id, status) {
+    await this.pool.query(`UPDATE inventory SET status=$2, updated_at=now() WHERE id=$1`, [id, status]);
   }
 }

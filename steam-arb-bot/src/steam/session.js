@@ -145,6 +145,22 @@ export class SteamSession extends EventEmitter {
     });
   }
 
+  /**
+   * Валюта кошелька аккаунта (ECurrencyCode). Steam приходит с ней в событии 'wallet' сразу после логона.
+   * Все цены SCM и запросы покупки/продажи должны быть именно в этой валюте.
+   */
+  async resolveWalletCurrency(fallback, timeoutMs = 15_000) {
+    if (this.client.wallet?.currency) return this.client.wallet.currency;
+    try {
+      const [, currency] = await once(this.client, 'wallet', { signal: AbortSignal.timeout(timeoutMs) });
+      if (currency) return currency;
+    } catch {
+      // таймаут — ниже вернём fallback
+    }
+    this.log.warn({ fallback }, 'Steam не сообщил валюту кошелька, используем STEAM_CURRENCY');
+    return fallback;
+  }
+
   /** Строка Cookie для наших HTTP-запросов к steamcommunity.com */
   cookieHeader() {
     return this.cookies.map((c) => c.split(';')[0]).join('; ');

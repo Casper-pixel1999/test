@@ -1,17 +1,20 @@
 import { receivedFor } from '../steam/fees.js';
 
 /**
- * Калькулятор арбитража. Все суммы — в центах.
+ * Калькулятор арбитража.
+ * Цены Steam — в минимальных единицах ВАЛЮТЫ КОШЕЛЬКА, цены сторонних площадок — в центах USD.
+ * Результат (cost/revenue/profit) — в центах РЕАЛЬНЫХ USD.
  *
- * Ключевые поправки, без которых "профит" получается фиктивным:
- *  - walletValue: деньги на кошельке Steam нельзя вывести. $1 кошелька обычно стоит
- *    0.65–0.80$ реальных денег. Покупка ЗА кошелёк дешевле, продажа ЗА кошелёк — "дешевле" в кэше.
+ * Параметры стратегии `s`:
+ *  - walletFx: сколько USD стоит 1 единица валюты кошелька (1 для USD-кошелька);
+ *  - walletValue: деньги кошелька Steam нельзя вывести. $1 кошелька обычно стоит
+ *    0.65–0.80$ реальных денег. Покупка ЗА кошелёк дешевле, продажа ЗА кошелёк — "дешевле" в кэше;
  *  - holdRisk: в CS2 купленный предмет нельзя сразу перепродать (холд/Trade Protection ~7 дней),
  *    цена может уйти. Дисконтируем ожидаемую выручку.
- *  - кэшаут-комиссия сторонней площадки (вывод на карту/крипту/PayPal).
+ * Плюс кэшаут-комиссия сторонней площадки (вывод на карту/крипту/PayPal).
  */
 
-const result = (route, name, costCash, revenueCash, extra = {}) => {
+const result = (route, name, costCash, revenueCash, extra) => {
   const netProfitCents = Math.round(revenueCash - costCash);
   return {
     route,
@@ -24,28 +27,34 @@ const result = (route, name, costCash, revenueCash, extra = {}) => {
   };
 };
 
+/** Единицы кошелька -> реальные USD-центы. */
+export const walletToCash = (walletCents, s) => walletCents * s.walletFx * s.walletValue;
+
 /** Покупка на ТП Steam -> продажа на ТП Steam (снайпинг лотов, выставленных ниже рынка). */
 export function steamToSteam({ appId, name, buyTotalCents, sellBuyerPaysCents, s }) {
   const received = receivedFor(sellBuyerPaysCents, appId);
-  // Обе стороны в "кошельковых" долларах -> walletValue сокращается, но держим явно
-  const cost = buyTotalCents * s.walletValue;
-  const revenue = received * s.walletValue * (1 - s.holdRisk);
-  return result('steam->steam', name, cost, revenue, { buyPriceCents: buyTotalCents, sellPriceCents: sellBuyerPaysCents });
+  return result('steam->steam', name, walletToCash(buyTotalCents, s), walletToCash(received, s) * (1 - s.holdRisk), {
+    buyPriceCents: buyTotalCents, buyCurrency: s.walletCurrency ?? 'USD', buyUsdCents: Math.round(buyTotalCents * s.walletFx),
+    sellPriceCents: sellBuyerPaysCents,
+  });
 }
 
 /** Покупка на сторонней площадке за реальные деньги -> продажа на ТП Steam за кошелёк. */
 export function externalToSteam({ appId, name, venue, buyPriceCents, sellBuyerPaysCents, s }) {
   const cost = buyPriceCents * (1 + venue.fees.buyFeePct);
   const received = receivedFor(sellBuyerPaysCents, appId);
-  const revenue = received * s.walletValue * (1 - s.holdRisk);
-  return result(`${venue.name}->steam`, name, cost, revenue, { buyPriceCents, sellPriceCents: sellBuyerPaysCents });
+  return result(`${venue.name}->steam`, name, cost, walletToCash(received, s) * (1 - s.holdRisk), {
+    buyPriceCents, buyCurrency: 'USD', buyUsdCents: Math.round(cost), sellPriceCents: sellBuyerPaysCents,
+  });
 }
 
 /** Покупка на ТП Steam за кошелёк -> продажа на сторонней площадке и вывод реальных денег. */
 export function steamToExternal({ name, venue, buyTotalCents, sellPriceCents, s }) {
-  const cost = buyTotalCents * s.walletValue;
   const revenue = sellPriceCents * (1 - venue.fees.sellFeePct) * (1 - venue.fees.cashoutFeePct) * (1 - s.holdRisk);
-  return result(`steam->${venue.name}`, name, cost, revenue, { buyPriceCents: buyTotalCents, sellPriceCents });
+  return result(`steam->${venue.name}`, name, walletToCash(buyTotalCents, s), revenue, {
+    buyPriceCents: buyTotalCents, buyCurrency: s.walletCurrency ?? 'USD', buyUsdCents: Math.round(buyTotalCents * s.walletFx),
+    sellPriceCents,
+  });
 }
 
 /**

@@ -24,7 +24,10 @@ export const config = Object.freeze({
     password: str('STEAM_PASSWORD'),
     maFilePath: str('MAFILE_PATH', './data/account.maFile.enc'),
     refreshTokenPath: str('REFRESH_TOKEN_PATH', './data/refresh_token.enc'),
+    // Используется, только если Steam не сообщил валюту кошелька при логоне
     currency: num('STEAM_CURRENCY', 1),
+    // Сколько USD стоит 1 единица валюты кошелька (для RUB ~0.011). Обязателен, если кошелёк не в USD.
+    walletUsdRate: num('WALLET_USD_RATE', null),
     accountProxy: str('STEAM_ACCOUNT_PROXY') || null,
   },
   secretsPassphrase: str('SECRETS_PASSPHRASE'),

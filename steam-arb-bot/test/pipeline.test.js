@@ -10,111 +10,150 @@ import { buyerPaysFor, receivedFor } from '../src/steam/fees.js';
 import { strategy, collectingNotifier, silentLogger } from './helpers.js';
 
 const url = process.env.DATABASE_URL_TEST;
-const NAME = 'Revolution Case';
+const CASE = 'Revolution Case';
+const KILO = 'Kilowatt Case';
 
-/** Фейковый SteamMarket с изменяемым состоянием рынка. */
+/** Фейковый SteamMarket с изменяемым состоянием рынка и аккаунта. */
 function fakeSteam() {
   const st = {
     overview: { lowestCents: 300, medianCents: 290, volume24h: 500 },
     listings: [{ listingId: 'L1', subtotalCents: 209, feeCents: 31, totalCents: 240 }],
-    inventory: [], listedAssets: new Set(), bought: [], sold: [], confirmCalls: [],
+    inventory: [], myListings: new Map(), history: { bought: [], sold: [] },
+    bought: [], sold: [], confirmed: [], nextListing: 1,
   };
   return {
     st,
+    currencyName: 'USD',
     priceOverview: async () => st.overview,
     getListings: async () => st.listings,
     buyListing: async (appId, name, l) => { st.bought.push(l.listingId); return { ok: true, raw: { wallet_info: { success: 1 } } }; },
     getInventory: async () => st.inventory,
+    getHistory: async () => st.history,
+    getMyListings: async () => st.myListings,
     sellItem: async ({ assetId, buyerPaysCents }) => {
       st.sold.push({ assetId, buyerPaysCents });
-      st.listedAssets.add(assetId);
+      st.myListings.set(assetId, `LST${st.nextListing++}`);
       st.inventory = st.inventory.filter((a) => a.assetId !== assetId);
       return { receivedCents: receivedFor(buyerPaysCents, 730), needsConfirmation: true };
     },
-    confirmOwnListings: async (names) => { st.confirmCalls.push(names); return names.length; },
-    getListedAssetIds: async () => st.listedAssets,
+    confirmListing: async (id) => { st.confirmed.push(id); return true; },
   };
 }
 
-test('pipeline: scan -> dry run -> buy -> list -> sold', { skip: !url && 'DATABASE_URL_TEST не задан' }, async (t) => {
+const quote = (steam, name, external = []) =>
+  findOpportunities({ appId: 730, name, q: { steam: { overview: steam.st.overview, listings: steam.st.listings }, external }, s: strategy })[0];
+
+test('pipeline: покупка -> точный assetid -> лот по listingid -> продажа по истории', { skip: !url && 'DATABASE_URL_TEST не задан' }, async (t) => {
   const db = new Repo(url);
   t.after(() => db.close());
-  await db.pool.query('TRUNCATE price_snapshots, opportunities, inventory, purchases RESTART IDENTITY CASCADE');
+  await db.pool.query('TRUNCATE price_snapshots, opportunities, inventory, purchases, seen_assets RESTART IDENTITY CASCADE');
 
   const steam = fakeSteam();
   const notifier = collectingNotifier();
+  const dmarketBuys = [];
+  const dmarket = {
+    name: 'dmarket', fees: { buyFeePct: 0, sellFeePct: 0.05, cashoutFeePct: 0.02 },
+    cheapestOffers: async () => [{ offerId: 'O1', priceCents: 150 }],
+    buy: async (o) => { dmarketBuys.push(o.offerId); return { ok: true, raw: { status: 'TxSuccess' } }; },
+  };
   const mk = (dryRun) => ({
-    sniper: new Sniper({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, venues: {}, logger: silentLogger }),
+    sniper: new Sniper({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, venues: { dmarket }, logger: silentLogger }),
     seller: new AutoSeller({ config: { dryRun, strategy }, db, notifier, steamMarket: steam, logger: silentLogger }),
   });
 
-  // 1) Снапшоты цен пишутся в БД
-  await db.savePrices('steam', 730, [{ name: NAME, priceCents: 300, medianCents: 290, volume: 500 }]);
-  await db.savePrices('skinport', 730, [{ name: NAME, priceCents: 250 }]);
-  const { rows: snaps } = await db.pool.query('SELECT source, price_cents FROM price_snapshots ORDER BY id');
-  assert.deepEqual(snaps.map((r) => [r.source, r.price_cents]), [['steam', 300], ['skinport', 250]]);
+  // 0) Личный инвентарь ДО первой покупки: такой же кейс уже лежит на аккаунте
+  steam.st.inventory = [{ assetId: 'OWN1', name: CASE, marketable: true }, { assetId: 'OWN2', name: KILO, marketable: true }];
+  await mk(false).seller.syncInventory(730);
 
-  // 2) Лот за $2.40 против медианы $2.90 -> получим 253c, ROI 5.4% < 10% -> не покупаем
-  let [opp] = findOpportunities({ appId: 730, name: NAME, q: { steam: { overview: steam.st.overview, listings: steam.st.listings }, external: [] }, s: strategy });
-  assert.equal(opp.route, 'steam->steam');
-  assert.equal(opp.netProfitCents, receivedFor(290, 730) - 240);
-  await mk(false).sniper.consider(730, opp);
-  assert.equal(steam.st.bought.length, 0, 'ROI ниже порога — без покупки');
-
-  // 3) Лот подешевел до $2.00 -> ROI 26% -> в DRY_RUN только запись и алерт
-  steam.st.listings = [{ listingId: 'L2', subtotalCents: 174, feeCents: 26, totalCents: 200 }];
-  [opp] = findOpportunities({ appId: 730, name: NAME, q: { steam: { overview: steam.st.overview, listings: steam.st.listings }, external: [] }, s: strategy });
-  await mk(true).sniper.consider(730, opp);
+  // 1) ROI 5.4% < 10% — пропуск
+  await mk(false).sniper.consider(730, quote(steam, CASE));
   assert.equal(steam.st.bought.length, 0);
-  assert.ok(notifier.messages.some((m) => m.includes('[DRY RUN]')));
-  assert.equal(await db.spentTodayCents(), 0, 'dry run не тратит бюджет');
 
-  // 4) Боевой режим: покупка, запись в purchases и inventory
-  const live = mk(false);
-  await live.sniper.consider(730, opp);
+  // 2) Лот за $2.00 (ROI 26.5%): в DRY_RUN — только запись, бюджет не тратится
+  steam.st.listings = [{ listingId: 'L2', subtotalCents: 174, feeCents: 26, totalCents: 200 }];
+  await mk(true).sniper.consider(730, quote(steam, CASE));
+  assert.equal(steam.st.bought.length, 0);
+  assert.equal(await db.spentTodayCents(), 0);
+
+  // 3) Боевая покупка: purchases -> bought, позиция в inventory
+  await mk(false).sniper.consider(730, quote(steam, CASE));
   assert.deepEqual(steam.st.bought, ['L2']);
   assert.equal(await db.spentTodayCents(), 200);
-  const awaiting = await db.awaitingSale(730);
-  assert.equal(awaiting.length, 1);
-  assert.equal(awaiting[0].cost_cash_cents, 200);
 
-  // 5) Повторная покупка того же предмета блокируется cooldown'ом
-  await live.sniper.consider(730, opp);
-  assert.deepEqual(steam.st.bought, ['L2']);
+  // 4) Перезапуск бота (новый Sniper): cooldown хранится в БД и всё ещё действует
+  steam.st.listings = [{ listingId: 'L3', subtotalCents: 174, feeCents: 26, totalCents: 200 }];
+  await mk(false).sniper.consider(730, quote(steam, CASE));
+  assert.deepEqual(steam.st.bought, ['L2'], 'после рестарта повторной покупки нет');
 
-  // 6) Продавец ждёт, пока предмет в холде (не marketable)
-  steam.st.inventory = [{ assetId: 'A1', name: NAME, marketable: false, tradable: false }];
+  // 5) Предмет зачислен, но в холде. История ТП говорит: лот L2 -> новый assetid A1
+  steam.st.history.bought.push({ listingId: 'L2', newAssetId: 'A1' });
+  steam.st.inventory.push({ assetId: 'A1', name: CASE, marketable: false });
+  const live = mk(false);
   await live.seller.run(730);
-  assert.equal(steam.st.sold.length, 0);
+  assert.equal(steam.st.sold.length, 0, 'в холде не выставляем');
+  const { rows: [pos] } = await db.pool.query("SELECT asset_id FROM inventory WHERE market_hash_name=$1", [CASE]);
+  assert.equal(pos.asset_id, 'A1', 'назначен точный assetid из истории, а не личный OWN1');
 
-  // 7) Холд закончился -> выставляем по конкурентной цене, не ниже пола
-  steam.st.inventory = [{ assetId: 'A1', name: NAME, marketable: true, tradable: true }];
-  steam.st.listings = [{ listingId: 'L3', subtotalCents: 261, feeCents: 39, totalCents: 300 }];
+  // 6) Холд закончился -> выставляем A1 (НЕ OWN1) и подтверждаем ровно его лот
+  steam.st.inventory.find((a) => a.assetId === 'A1').marketable = true;
+  steam.st.listings = [{ listingId: 'L4', subtotalCents: 261, feeCents: 39, totalCents: 300 }];
   await live.seller.run(730);
-  const floor = buyerPaysFor(Math.ceil(200 * 1.05), 730);
-  assert.equal(steam.st.sold.length, 1);
-  assert.equal(steam.st.sold[0].buyerPaysCents, Math.max(Math.min(299, 290), floor));
-  assert.deepEqual(steam.st.confirmCalls, [[NAME]]);
-  const { rows: [listed] } = await db.pool.query("SELECT status, asset_id, list_price_cents FROM inventory");
-  assert.equal(listed.status, 'listed');
-  assert.equal(listed.asset_id, 'A1');
+  assert.deepEqual(steam.st.sold.map((x) => x.assetId), ['A1']);
+  assert.equal(steam.st.sold[0].buyerPaysCents, Math.max(290, buyerPaysFor(Math.ceil(200 * 1.05), 730)));
+  assert.deepEqual(steam.st.confirmed, ['LST1']);
+  assert.ok(steam.st.inventory.some((a) => a.assetId === 'OWN1'), 'личный предмет не тронут');
 
-  // 8) Лот пропал с ТП и из инвентаря -> продано, статистика считается
-  steam.st.listedAssets.clear();
-  await live.seller.reconcileSold(730);
-  const { rows: [day] } = await db.pool.query('SELECT items_sold, revenue_wallet_cents, cost_cash_cents FROM daily_profit');
-  assert.equal(Number(day.items_sold), 1);
-  assert.equal(Number(day.cost_cash_cents), 200);
-  assert.ok(notifier.messages.some((m) => m.startsWith('💰 Продано')));
+  // 7) Лот висит на ТП -> статус listed; продажа фиксируется только по истории и по факту (250, а не 253)
+  await live.seller.run(730);
+  assert.equal((await db.listedPositions(730)).length, 1);
+  steam.st.myListings.delete('A1');
+  steam.st.history.sold.push({ listingId: 'LST1', assetId: 'A1', receivedCents: 250 });
+  await live.seller.run(730);
+  const { rows: [day] } = await db.pool.query('SELECT items_sold, revenue_cash_cents, cost_cash_cents, profit_cash_cents FROM daily_profit');
+  assert.deepEqual([Number(day.items_sold), Number(day.revenue_cash_cents), Number(day.cost_cash_cents), Number(day.profit_cash_cents)], [1, 250, 200, 50]);
 
-  // 9) Дневной бюджет: следующая покупка на $9 превысит лимит $10
+  // 8) Маршрут DMarket -> Steam: истории нет, assetid берётся из предметов, появившихся ПОСЛЕ покупки
+  steam.st.overview = { lowestCents: 300, medianCents: 290, volume24h: 500 };
+  steam.st.listings = [];
+  const ext = [{ venue: dmarket, priceCents: 150, buyable: true, offer: { offerId: 'O1', priceCents: 150 } }];
+  const dOpp = findOpportunities({ appId: 730, name: KILO, q: { steam: { overview: steam.st.overview, listings: [] }, external: ext }, s: strategy })[0];
+  assert.equal(dOpp.route, 'dmarket->steam');
+  await live.sniper.consider(730, dOpp);
+  assert.deepEqual(dmarketBuys, ['O1']);
+  steam.st.inventory.push({ assetId: 'D1', name: KILO, marketable: false });
+  await live.seller.run(730);
+  const { rows: [kpos] } = await db.pool.query("SELECT asset_id FROM inventory WHERE market_hash_name=$1", [KILO]);
+  assert.equal(kpos.asset_id, 'D1', 'OWN2 был в инвентаре до покупки — не назначается');
+
+  // 9) Сбой посреди покупки: pending-записи восстанавливаются при старте
+  await db.beginPurchase({ appId: 730, status: 'pending', opp: { buyVenue: 'steam', listing: { listingId: 'L77' }, name: CASE, buyPriceCents: 100, buyCurrency: 'USD', costCashCents: 100 } });
+  await db.beginPurchase({ appId: 730, status: 'pending', opp: { buyVenue: 'dmarket', offer: { offerId: 'O55' }, name: KILO, buyPriceCents: 100, buyCurrency: 'USD', costCashCents: 100 } });
+  steam.st.history.bought.push({ listingId: 'L77', newAssetId: 'A77' });
+  await mk(false).sniper.recoverPending();
+  const { rows: rec } = await db.pool.query("SELECT external_id, status FROM purchases WHERE external_id IN ('L77','O55') ORDER BY external_id");
+  assert.deepEqual(rec.map((r) => [r.external_id, r.status]), [['L77', 'bought'], ['O55', 'unknown']]);
+  assert.ok(notifier.messages.some((m) => m.includes('O55') && m.includes('вручную')));
+  const { rows: [{ n }] } = await db.pool.query("SELECT count(*)::int AS n FROM inventory i JOIN purchases p ON p.id=i.purchase_id WHERE p.external_id='L77'");
+  assert.equal(n, 1, 'восстановленная покупка попала в очередь на продажу');
+
+  // 10) Тот же лот второй раз купить нельзя (UNIQUE venue+external_id)
+  assert.equal(await db.beginPurchase({ appId: 730, status: 'pending', opp: { buyVenue: 'steam', listing: { listingId: 'L77' }, name: CASE, buyPriceCents: 100, buyCurrency: 'USD', costCashCents: 100 } }), null);
+
+  // 11) Лот сняли вручную -> manual; предмет пропал без продажи (>1ч) -> gone. Ни то, ни другое не "продано"
+  const { rows: [p1] } = await db.pool.query(`INSERT INTO purchases (venue, external_id, app_id, market_hash_name, cost_cents, currency, cost_cash_cents, status)
+    VALUES ('steam','LM',730,'M',100,'USD',100,'bought'), ('steam','LG',730,'G',100,'USD',100,'bought') RETURNING id`);
+  await db.pool.query(`INSERT INTO inventory (purchase_id, app_id, market_hash_name, asset_id, status, listed_at) VALUES
+    ($1,730,'M','M1','listed',now()), ($1+1,730,'G','G1','listed',now() - interval '2 hours')`, [p1.id]);
+  steam.st.inventory.push({ assetId: 'M1', name: 'M', marketable: true });
+  await live.seller.run(730);
+  const { rows: st } = await db.pool.query("SELECT asset_id, status FROM inventory WHERE asset_id IN ('M1','G1') ORDER BY asset_id");
+  assert.deepEqual(st.map((r) => [r.asset_id, r.status]), [['G1', 'gone'], ['M1', 'manual']]);
+  assert.equal(Number((await db.pool.query('SELECT items_sold FROM daily_profit')).rows[0].items_sold), 1);
+
+  // 12) Дневной бюджет $10: покупка за $9 при уже потраченных $5.00 не проходит
   steam.st.overview = { lowestCents: 1500, medianCents: 1400, volume24h: 500 };
   steam.st.listings = [{ listingId: 'L9', subtotalCents: 783, feeCents: 117, totalCents: 900 }];
-  [opp] = findOpportunities({ appId: 730, name: 'Other', q: { steam: { overview: steam.st.overview, listings: steam.st.listings }, external: [] }, s: strategy });
-  await live.sniper.consider(730, opp);
+  await live.sniper.consider(730, quote(steam, 'Other'));
   assert.ok(!steam.st.bought.includes('L9'));
   assert.ok(notifier.messages.some((m) => m.includes('Дневной бюджет')));
-
-  const { rows: decisions } = await db.pool.query('SELECT decision FROM opportunities ORDER BY id');
-  assert.deepEqual(decisions.map((r) => r.decision), ['dry_run', 'bought', 'skipped:cooldown', 'skipped:budget']);
 });

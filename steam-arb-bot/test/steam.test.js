@@ -128,22 +128,43 @@ test('SteamMarket.sellItem: в Steam уходит сумма продавца б
   assert.equal(new URLSearchParams(http.calls[0].body).get('price'), '100');
 });
 
-test('confirmOwnListings: трейды, чужие и старые подтверждения НЕ подтверждаются', async () => {
-  const now = new Date();
-  const old = new Date(Date.now() - 60 * 60_000);
+test('confirmListing: подтверждается ровно лот с нужным listingid, трейды не трогаются', async () => {
   const confs = [
-    { id: 'mine', type: 3, title: 'Market Listing - Revolution Case', sending: '', timestamp: now },
-    { id: 'trade', type: 2, title: 'Trade Offer - Revolution Case', sending: '', timestamp: now },
-    { id: 'other', type: 3, title: 'Market Listing - AWP | Dragon Lore', sending: '', timestamp: now },
-    { id: 'stale', type: 3, title: 'Market Listing - Revolution Case', sending: '', timestamp: old },
+    { id: 'c-trade', type: 2, creator: 'LST1' },     // трейд с тем же creator — не трогаем
+    { id: 'c-other', type: 3, creator: 'LST2' },     // чужой лот
+    { id: 'c-mine', type: 3, creator: 'LST1' },
   ];
   const { market, accepted } = marketWith([], confs);
-  assert.equal(await market.confirmOwnListings(['Revolution Case']), 1);
-  assert.deepEqual(accepted, ['mine']);
+  assert.equal(await market.confirmListing('LST1'), true);
+  assert.deepEqual(accepted, ['c-mine']);
+  assert.equal(await market.confirmListing('NOPE'), false);
+  assert.deepEqual(accepted, ['c-mine']);
 });
 
-test('getListedAssetIds: собирает assetid из обоих форматов ответа', async () => {
+test('getMyListings: assetid -> listingid из обоих форматов ответа', async () => {
   const { market } = marketWith([[/mylistings/, () => ({
-    assets: { 730: { 2: { 111: {} } } }, listings_to_confirm: [{ asset: { id: '222' } }] })]]);
-  assert.deepEqual([...await market.getListedAssetIds(730)].sort(), ['111', '222']);
+    assets: { 730: { 2: { 111: {} } } },
+    listings: [{ listingid: '901', asset: { id: '111' } }],
+    listings_to_confirm: [{ listingid: '902', asset: { id: '222' } }],
+  })]]);
+  const m = await market.getMyListings(730);
+  assert.deepEqual([...m.entries()].sort(), [['111', '901'], ['222', '902']]);
+});
+
+test('getHistory: наши покупки (new_id) и продажи (фактически получено)', async () => {
+  const { market } = marketWith([[/myhistory/, () => ({
+    success: true,
+    events: [
+      { listingid: '500', purchaseid: '1', event_type: 4 },
+      { listingid: '600', purchaseid: '2', event_type: 3 },
+      { listingid: '700', purchaseid: '0', event_type: 1 },
+    ],
+    purchases: {
+      '500_1': { listingid: '500', asset: { id: 'seller-asset', new_id: 'A1' }, paid_amount: 200, paid_fee: 30 },
+      '600_2': { listingid: '600', asset: { id: 'A9' }, received_amount: 252 },
+    },
+  })]]);
+  const h = await market.getHistory();
+  assert.deepEqual(h.bought, [{ listingId: '500', newAssetId: 'A1' }]);
+  assert.deepEqual(h.sold, [{ listingId: '600', assetId: 'A9', receivedCents: 252 }]);
 });
